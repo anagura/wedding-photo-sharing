@@ -1,0 +1,67 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Wedding Photo Viewer";
+}
+
+@section Styles{
+    <environment include="Development">
+        <link rel="stylesheet" href="~/lib/justifiedGallery/dist/css/justifiedGallery.css" />
+    </environment>
+    <environment exclude="Development">
+        <link rel="stylesheet" href="~/lib/justifiedGallery/dist/css/justifiedGallery.min.css" />
+    </environment>
+}
+
+<div id="mygallery" class="justified-gallery">
+    <a href="https://s7d1.scene7.com/is/image/PETCO/dog-category-090617-369w-269h-hero-cutout-d">
+        <img alt="Title 1" src="https://s7d1.scene7.com/is/image/PETCO/dog-category-090617-369w-269h-hero-cutout-d" />
+    </a>
+    <a href="https://www.cesarsway.com/sites/newcesarsway/files/styles/large_article_preview/public/Common-dog-behaviors-explained.jpg">
+        <img alt="Title 2" src="https://www.cesarsway.com/sites/newcesarsway/files/styles/large_article_preview/public/Common-dog-behaviors-explained.jpg" />
+    </a>
+    <a href="https://s7d2.scene7.com/is/image/PetSmart/PB1201_STORY_CARO-Authority-HealthyOutside-DOG-20160818">
+        <img alt="Title 3" src="https://s7d2.scene7.com/is/image/PetSmart/PB1201_STORY_CARO-Authority-HealthyOutside-DOG-20160818" />
+    </a>
+    <a href="https://i.pinimg.com/originals/2e/3e/a1/2e3ea12b3417421b1a83cd2305d2b5f9.jpg">
+        <img alt="Title 4" src="https://i.pinimg.com/originals/2e/3e/a1/2e3ea12b3417421b1a83cd2305d2b5f9.jpg" />
+    </a>
+</div>
+
+@section Scripts{
+    <environment include="Development">
+        <script type="text/javascript" src="~/lib/justifiedGallery/dist/js/jquery.justifiedGallery.js"></script>
+    </environment>
+    <environment exclude="Development">
+        <script type="text/javascript" src="~/lib/justifiedGallery/dist/js/jquery.justifiedGallery.min.js"></script>
+    </environment>
+    <script type="text/javascript">
+        var gallery = $("#mygallery");
+        var images = [
+            "https://s7d1.scene7.com/is/image/PETCO/dog-category-090617-369w-269h-hero-cutout-d",
+            "https://www.cesarsway.com/sites/newcesarsway/files/styles/large_article_preview/public/Common-dog-behaviors-explained.jpg",
+            "https://s7d2.scene7.com/is/image/PetSmart/PB1201_STORY_CARO-Authority-HealthyOutside-DOG-20160818",
+            "https://i.pinimg.com/originals/2e/3e/a1/2e3ea12b3417421b1a83cd2305d2b5f9.jpg"
+        ]
+
+        gallery.justifiedGallery({
+            rowHeight: 300,
+            lastRow: 'nojustify',
+            margins: 5
+        });
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function addPhoto() {
+            var image = images[getRandomInt(0, 3)];
+            gallery.prepend(`<a href="${image}"><img alt= "Title 1" src= "${image}" /></a >`);
+            gallery.justifiedGallery({
+                rowHeight: 300,
+                lastRow: 'nojustify',
+                margins: 5
+            });
+        }
+    </script>
+}

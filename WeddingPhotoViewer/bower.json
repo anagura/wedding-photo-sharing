@@ -1,0 +1,11 @@
+{
+  "name": "WeddingPhotoViewer",
+  "private": true,
+  "dependencies": {
+    "justifiedGallery": "justified-gallery#3.6.3",
+    "bootstrap": "v3.3.7",
+    "jquery-validation": "1.17.0",
+    "jquery-validation-unobtrusive": "v3.2.6",
+    "jquery": "3.2.1"
+  }
+}
