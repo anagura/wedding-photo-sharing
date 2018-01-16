@@ -18,7 +18,7 @@
 
         .text-entry {
             font-size: xx-large;
-            padding: 10px 0 0 10px;
+            padding: 15px 0 0 15px;
         }
     </style>
 }
@@ -78,9 +78,57 @@
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
+        function createVideo(url) {
+            return new Promise(function (resolve) {
+                let video = document.createElement('video');
+                video.muted = true;
+                video.autoplay = true;
+                video.loop = true;
+                video.style = "width:100%";
+                video.addEventListener("loadedmetadata", function () {
+                    let height = this.videoHeight;
+                    let width = this.videoWidth;
+                    resolve({
+                        height: height,
+                        width: width,
+                        video: video
+                    });
+                }, false);
+                video.src = url;
+            });
+        }
+
         function addPhoto() {
             var image = images[getRandomInt(0, 3)];
             gallery.prepend(`<a href="${image}"><img alt= "Title 1" src= "${image}" /></a >`);
+            gallery.justifiedGallery({
+                rowHeight: 300,
+                margins: 5
+            });
+        }
+
+        function addMovie() {
+            createVideo("https://otsukatest.blob.core.windows.net/movies/frontier.mp4")
+                .then(function (res) {
+                    let div = $('<div/>', {
+                        style: `width:${res.width}px;height:${res.height}px`
+                    });
+                    div.append(res.video)
+                    gallery.prepend(div);
+                    gallery.justifiedGallery({
+                        rowHeight: 300,
+                        margins: 5
+                    });
+                });
+        }
+
+        function addText(text) {
+            let div = $('<div/>', {
+                class: "text-entry",
+                style: `width:${text.length * 7}px;height:auto`
+            });
+            div.text(text);
+            gallery.prepend(div);
             gallery.justifiedGallery({
                 rowHeight: 300,
                 margins: 5
