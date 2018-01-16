@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.27130.2020
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LineMessagingApi", "LineMessagingApi\LineMessagingApi.csproj", "{0AFBF059-69CD-4DCF-B510-5D3329521D46}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeddingPhotoViewer", "WeddingPhotoViewer\WeddingPhotoViewer.csproj", "{C0B5BBF7-608E-48FF-8FF6-9AA1AF86DDA3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeddingPhotoViewer", "WeddingPhotoViewer\WeddingPhotoViewer.csproj", "{857317BE-02E7-41E0-8CA6-0259D70F51EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{0AFBF059-69CD-4DCF-B510-5D3329521D46}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0AFBF059-69CD-4DCF-B510-5D3329521D46}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0AFBF059-69CD-4DCF-B510-5D3329521D46}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C0B5BBF7-608E-48FF-8FF6-9AA1AF86DDA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C0B5BBF7-608E-48FF-8FF6-9AA1AF86DDA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C0B5BBF7-608E-48FF-8FF6-9AA1AF86DDA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C0B5BBF7-608E-48FF-8FF6-9AA1AF86DDA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{857317BE-02E7-41E0-8CA6-0259D70F51EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{857317BE-02E7-41E0-8CA6-0259D70F51EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{857317BE-02E7-41E0-8CA6-0259D70F51EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{857317BE-02E7-41E0-8CA6-0259D70F51EE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
