@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.WebJobs;
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Net.Http;
@@ -19,10 +20,22 @@ namespace WeddingPhotoSharing.WebJob
         public async static Task ProcessQueueMessage([QueueTrigger("line-bot-workitems")] string message, TextWriter log)
         {
             log.WriteLine(message);
-            using (var content = new StringContent(message, Encoding.UTF8, "application/json"))
+
+            var slackMessage = new SlackMessage
+            {
+                Text = $"```{message}```"
+            };
+            var json = JsonConvert.SerializeObject(slackMessage);
+            using (var content = new StringContent(json, Encoding.UTF8, "application/json"))
             {
                 await httpClient.PostAsync(path, content);
             }
         }
+    }
+
+    public class SlackMessage
+    {
+        [JsonProperty("text")]
+        public string Text { get; set; }
     }
 }
