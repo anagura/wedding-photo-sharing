@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WeddingPhotoViewer.Data;
 using WeddingPhotoViewer.Services;
+using System.Net.WebSockets;
 
 namespace WeddingPhotoViewer
 {
@@ -64,6 +65,34 @@ namespace WeddingPhotoViewer
             app.UseAuthentication();
 
             app.UseMvc();
+
+            var webSocketOptions = new WebSocketOptions()
+            {
+                KeepAliveInterval = TimeSpan.FromSeconds(120),
+                ReceiveBufferSize = 4 * 1024
+            };
+
+            app.UseWebSockets(webSocketOptions);
+
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path == "/ws")
+                {
+                    if (context.WebSockets.IsWebSocketRequest)
+                    {
+                        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                        await WebSocketHandler.Echo(context, webSocket);
+                    }
+                    else
+                    {
+                        context.Response.StatusCode = 400;
+                    }
+                }
+                else
+                {
+                    await next();
+                }
+            });
         }
     }
 }
