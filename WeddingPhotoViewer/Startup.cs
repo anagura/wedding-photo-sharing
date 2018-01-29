@@ -74,14 +74,56 @@ namespace WeddingPhotoViewer
 
             app.UseWebSockets(webSocketOptions);
 
+            var webSocketHandler = new WebSocketHandler();
+
             app.Use(async (context, next) =>
             {
-                if (context.Request.Path == "/ws")
+                if (context.Request.Path == "/echo")
                 {
                     if (context.WebSockets.IsWebSocketRequest)
                     {
                         var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                        await WebSocketHandler.Echo(context, webSocket);
+                        await webSocketHandler.Echo(context, webSocket);
+                    }
+                    else
+                    {
+                        context.Response.StatusCode = 400;
+                    }
+                }
+                else
+                {
+                    await next();
+                }
+            });
+
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path == "/photo")
+                {
+                    if (context.WebSockets.IsWebSocketRequest)
+                    {
+                        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                        await webSocketHandler.Photo(context, webSocket);
+                    }
+                    else
+                    {
+                        context.Response.StatusCode = 400;
+                    }
+                }
+                else
+                {
+                    await next();
+                }
+            });
+
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path == "/webjob")
+                {
+                    if (context.WebSockets.IsWebSocketRequest)
+                    {
+                        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                        await webSocketHandler.Webjob(context, webSocket);
                     }
                     else
                     {
