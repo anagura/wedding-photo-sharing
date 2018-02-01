@@ -7,5 +7,7 @@
         public static string SlackWebhookPath => Setting("SlackWebhookPath");
 
         public static string WebsocketServerUrl => Setting("WebsocketServerUrl");
-    }
+
+		public static string LineAccessToken => Setting("LineAccessToken");
+	}
 }

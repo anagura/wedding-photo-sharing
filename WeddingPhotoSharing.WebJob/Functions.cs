@@ -9,6 +9,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using LineMessaging;
 
 namespace WeddingPhotoSharing.WebJob
 {
@@ -20,17 +21,22 @@ namespace WeddingPhotoSharing.WebJob
             Timeout = TimeSpan.FromSeconds(10)
         };
 
-        private static readonly string SlackWebhookPath = AppSettings.SlackWebhookPath;
+		private static readonly string SlackWebhookPath = AppSettings.SlackWebhookPath;
         private static readonly string WebsocketServerUrl = AppSettings.WebsocketServerUrl;
-        private static readonly ClientWebSocket webSocket;
+		private static readonly string LineAccessToken = AppSettings.LineAccessToken;
+		private static readonly ClientWebSocket webSocket;
         private static readonly ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
+		private static readonly LineMessagingClient lineMessagingClient;
 
-        static Functions()
+
+		static Functions()
         {
             webSocket = new ClientWebSocket();
             webSocket.Options.KeepAliveInterval = TimeSpan.FromMinutes(1);
             TryConnect(Console.Out);
-        }
+
+			lineMessagingClient = new LineMessagingClient(LineAccessToken);
+		}
 
         public async static Task ProcessQueueMessage([QueueTrigger("line-bot-workitems")] string message, TextWriter log)
         {
@@ -54,11 +60,49 @@ namespace WeddingPhotoSharing.WebJob
             }
 
             log.WriteLine(message);
-            await PostToSlack(message, log);
+
+			var websocket_message = await GetContentFromLine(message, log);
+			message = websocket_message;
+
+			await PostToSlack(message, log);
             await PostToWebsocket(message, log);
         }
 
-        private static void TryConnect(TextWriter log)
+		private static async Task<string> GetContentFromLine(string message, TextWriter log)
+		{
+			List<WebSocketMessage> lineMessages = new List<WebSocketMessage>();
+			LineWebhookContent content = JsonConvert.DeserializeObject<LineWebhookContent>(message);
+			foreach (LineWebhookContent.Event event_message in content.Events )
+			{
+				WebSocketMessage result = new WebSocketMessage();
+				if (event_message.Type == WebhookRequestEventType.Message
+					&& event_message.Source.Type == WebhookRequestSourceType.User)
+				{
+					string userId = event_message.Source.UserId;
+					var profile = await lineMessagingClient.GetProfile(userId);
+					result.Name = profile.DisplayName;
+
+					if (event_message.Message.Type == MessageType.Text)
+					{
+						result.Text = event_message.Message.Text;
+						log.WriteLine(string.Format("user:{0}, message:{1}" + profile.DisplayName, event_message.Message.Text));
+						// TODO:画像化する
+					}
+					else if (event_message.Message.Type == MessageType.Image)
+					{
+						var image = lineMessagingClient.GetMessageContent(event_message.Message.Id.ToString());
+						log.WriteLine(string.Format("user:{0}, image" + profile.DisplayName));
+
+						// TODO:imageをstorageへ保存し、url生成
+					}
+					lineMessages.Add(result);
+				}
+			}
+
+			return JsonConvert.SerializeObject(lineMessages);
+		}
+
+		private static void TryConnect(TextWriter log)
         {
             try
             {
@@ -121,7 +165,19 @@ namespace WeddingPhotoSharing.WebJob
         }
     }
 
-    public class SlackMessage
+	public class WebSocketMessage
+	{
+		[JsonProperty("text")]
+		public string Text { get; set; }
+
+		[JsonProperty("name")]
+		public string Name { get; set; }
+
+		[JsonProperty("imageUrl")]
+		public string ImageUrl { get; set; }
+	}
+
+	public class SlackMessage
     {
         [JsonProperty("text")]
         public string Text { get; set; }
