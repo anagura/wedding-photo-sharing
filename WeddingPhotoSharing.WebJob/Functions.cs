@@ -29,7 +29,7 @@ namespace WeddingPhotoSharing.WebJob
         {
             webSocket = new ClientWebSocket();
             webSocket.Options.KeepAliveInterval = TimeSpan.FromMinutes(1);
-            TryConnect();
+            TryConnect(Console.Out);
         }
 
         public async static Task ProcessQueueMessage([QueueTrigger("line-bot-workitems")] string message, TextWriter log)
@@ -48,16 +48,17 @@ namespace WeddingPhotoSharing.WebJob
                 while (messageQueue.TryDequeue(out string oldMessage))
                 {
                     log.WriteLine("old message: " + oldMessage);
-                    await PostToSlack(message);
+                    await PostToSlack(message, log);
+                    await PostToWebsocket(message, log);
                 }
             }
 
             log.WriteLine(message);
-            await PostToSlack(message);
-            await PostToWebsocket(message);
+            await PostToSlack(message, log);
+            await PostToWebsocket(message, log);
         }
 
-        private static void TryConnect(TextWriter log = null)
+        private static void TryConnect(TextWriter log)
         {
             try
             {
@@ -68,11 +69,11 @@ namespace WeddingPhotoSharing.WebJob
             }
             catch (Exception ex)
             {
-                Console.WriteLine("ConnectAndForget: " + ex.ToString());
+                log.WriteLine("ConnectAndForget: " + ex.ToString());
             }
         }
 
-        private static Task PostToSlack(string message)
+        private static Task PostToSlack(string message, TextWriter log)
         {
             try
             {
@@ -88,12 +89,12 @@ namespace WeddingPhotoSharing.WebJob
             }
             catch (Exception ex)
             {
-                Console.WriteLine("PostToSlack: " + ex.ToString());
+                log.WriteLine("PostToSlack: " + ex.ToString());
                 return Task.CompletedTask;
             }
         }
 
-        private static Task PostToWebsocket(string message)
+        private static Task PostToWebsocket(string message, TextWriter log)
         {
             try
             {
@@ -114,7 +115,7 @@ namespace WeddingPhotoSharing.WebJob
             }
             catch (Exception ex)
             {
-                Console.WriteLine("PostToWebsocket: " + ex.ToString());
+                log.WriteLine("PostToWebsocket: " + ex.ToString());
                 return Task.CompletedTask;
             }
         }

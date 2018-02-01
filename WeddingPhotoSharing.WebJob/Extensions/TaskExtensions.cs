@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -14,21 +13,11 @@ namespace WeddingPhotoSharing.WebJob
             {
                 if (x.Exception != null)
                 {
-                    var message = "TaskUnhandled: " + x.Exception.ToString();
-                    Console.WriteLine(message);
-                    if (log != null)
-                    {
-                        log.WriteLine(message);
-                    }
+                    log?.WriteLine("TaskUnhandled: " + x.Exception.ToString());
                 }
                 else
                 {
-                    var message = "TaskUnhandled";
-                    Console.WriteLine("TaskUnhandled");
-                    if (log != null)
-                    {
-                        log.WriteLine(message);
-                    }
+                    log?.WriteLine("TaskUnhandled");
                 }
             }, TaskContinuationOptions.OnlyOnFaulted);
         }
