@@ -85,13 +85,13 @@ namespace WeddingPhotoSharing.WebJob
 					if (event_message.Message.Type == MessageType.Text)
 					{
 						result.Text = event_message.Message.Text;
-						log.WriteLine(string.Format("user:{0}, message:{1}" + profile.DisplayName, event_message.Message.Text));
+						log.WriteLine(string.Format("user:{0}, message:{1}" , profile.DisplayName, event_message.Message.Text));
 						// TODO:画像化する
 					}
 					else if (event_message.Message.Type == MessageType.Image)
 					{
 						var image = lineMessagingClient.GetMessageContent(event_message.Message.Id.ToString());
-						log.WriteLine(string.Format("user:{0}, image" + profile.DisplayName));
+						log.WriteLine(string.Format("user:{0}, image" , profile.DisplayName));
 
 						// TODO:imageをstorageへ保存し、url生成
 					}
