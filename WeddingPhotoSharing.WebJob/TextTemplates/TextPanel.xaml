@@ -1,0 +1,13 @@
+﻿<UserControl
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"  Width="256"  Height="256">
+    <Grid x:Name="LayoutRoot"  HorizontalAlignment="Left" VerticalAlignment="Center">
+        <StackPanel>
+            <TextBox Text="@Model.Text" TextWrapping="Wrap" Foreground="Blue" Background="LightBlue"/>
+            <TextBox Text="@Model.Name" TextWrapping="Wrap" Foreground="#FF0054FF" Background="#FF94FF8B"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using System.Net.Http;
 using System.Net.WebSockets;
@@ -13,6 +14,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using LineMessaging;
+using ImageGeneration;
 
 namespace WeddingPhotoSharing.WebJob
 {
@@ -30,6 +32,8 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly string LineMediaContainerName = AppSettings.LineMediaContainerName;
         private static readonly string StorageAccountName = AppSettings.StorageAccountName;
         private static readonly string StorageAccountKey = AppSettings.StorageAccountKey;
+
+        private static readonly string ImageGeneratorTemplate;
 
         private static readonly ClientWebSocket webSocket;
         private static readonly ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
@@ -52,6 +56,8 @@ namespace WeddingPhotoSharing.WebJob
             storageAccount = new CloudStorageAccount(storageCredentials, true);
             blobClient = storageAccount.CreateCloudBlobClient();
             container = blobClient.GetContainerReference(LineMediaContainerName);
+
+            ImageGeneratorTemplate = File.ReadAllText("TextTemplates/TextPanel.xaml");
         }
 
         public async static Task ProcessQueueMessage([QueueTrigger("line-bot-workitems")] string message, TextWriter log)
@@ -74,11 +80,11 @@ namespace WeddingPhotoSharing.WebJob
                     await PostToWebsocket(message, log);
                 }
             }
+
             log.WriteLine(message);
 
-            var websocket_message = await GetContentFromLine(message, log);
-            log.WriteLine(websocket_message);
-            message = websocket_message;
+            message = await GetContentFromLine(message, log);
+            log.WriteLine(message);
 
             await PostToSlack(message, log);
             await PostToWebsocket(message, log);
@@ -88,40 +94,64 @@ namespace WeddingPhotoSharing.WebJob
         {
             List<WebSocketMessage> lineMessages = new List<WebSocketMessage>();
             LineWebhookContent content = JsonConvert.DeserializeObject<LineWebhookContent>(message);
-            foreach (LineWebhookContent.Event event_message in content.Events )
+            foreach (LineWebhookContent.Event eventMessage in content.Events )
             {
-                if (event_message.Type == WebhookRequestEventType.Message
-                    && event_message.Source.Type == WebhookRequestSourceType.User)
+                if (eventMessage.Type == WebhookRequestEventType.Message
+                    && eventMessage.Source.Type == WebhookRequestSourceType.User)
                 {
                     WebSocketMessage result = new WebSocketMessage();
 
-                    string userId = event_message.Source.UserId;
+                    var fileName = eventMessage.Message.Id.ToString() + ".jpg";
+                    string userId = eventMessage.Source.UserId;
                     var profile = await lineMessagingClient.GetProfile(userId);
                     result.Name = profile.DisplayName;
 
-                    if (event_message.Message.Type == MessageType.Text)
+                    byte[] image;
+                    if (eventMessage.Message.Type == MessageType.Text)
                     {
-                        result.Text = event_message.Message.Text;
-                        // TODO:画像化する
+                        // テキストを画像化
+                        dynamic viewModel = new ExpandoObject();
+                        viewModel.Name = result.Name;
+                        viewModel.Text = eventMessage.Message.Text;
+                        image = ImageGenerator.GenerateImage(ImageGeneratorTemplate, viewModel);
+
+                        // 画像をストレージにアップロード
+                        UploadImageToStorage(fileName, image);
+                        result.ImageUrl = GetUrl(fileName);
                     }
-                    else if (event_message.Message.Type == MessageType.Image)
+                    else if (eventMessage.Message.Type == MessageType.Image)
                     {
-                        var image = lineMessagingClient.GetMessageContent(event_message.Message.Id.ToString());
+                        // LINEから画像を取得
+                        var lineResult = lineMessagingClient.GetMessageContent(eventMessage.Message.Id.ToString());
 
-                        var fileName = event_message.Message.Id.ToString() + ".jpg";
-                        CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
-                        blockBlob.Properties.ContentType = "image/jpeg";
-
-                        await blockBlob.UploadFromByteArrayAsync(image.Result, 0, image.Result.Length);
-
-                        var filePath = string.Format("https://{0}.blob.core.windows.net/{1}/{2}", StorageAccountName, LineMediaContainerName, fileName);
-                        result.ImageUrl = filePath;
+                        // 画像をストレージにアップロード
+                        UploadImageToStorage(fileName, lineResult.Result);
+                        result.ImageUrl = GetUrl(fileName);
                     }
+                    else
+                    {
+                        log.WriteLine("not supported message type:" + eventMessage.Message.Type);
+                        continue;
+                    }
+
                     lineMessages.Add(result);
                 }
             }
 
             return JsonConvert.SerializeObject(lineMessages);
+        }
+
+        private static async void UploadImageToStorage(string fileName, byte[] image)
+        {
+            CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
+            blockBlob.Properties.ContentType = "image/jpeg";
+
+            await blockBlob.UploadFromByteArrayAsync(image, 0, image.Length);
+        }
+
+        private static string GetUrl(string fileName)
+        {
+            return string.Format("https://{0}.blob.core.windows.net/{1}/{2}", StorageAccountName, LineMediaContainerName, fileName);
         }
 
         private static void TryConnect(TextWriter log)
@@ -189,9 +219,6 @@ namespace WeddingPhotoSharing.WebJob
 
     public class WebSocketMessage
     {
-        [JsonProperty("text")]
-        public string Text { get; set; }
-
         [JsonProperty("name")]
         public string Name { get; set; }
 
