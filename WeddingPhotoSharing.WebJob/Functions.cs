@@ -62,29 +62,30 @@ namespace WeddingPhotoSharing.WebJob
 
         public async static Task ProcessQueueMessage([QueueTrigger("line-bot-workitems")] string message, TextWriter log)
         {
-            if (webSocket.State != WebSocketState.Open)
+            if (webSocket.State != WebSocketState.Open
+                && webSocket.State != WebSocketState.Connecting)
             {
+                log.WriteLine("websocket state:" + webSocket.State);
                 TryConnect(log);
 
                 // send at next chance
                 messageQueue.Enqueue(message);
                 return;
             }
-
             if (messageQueue.Count > 0)
             {
                 while (messageQueue.TryDequeue(out string oldMessage))
                 {
                     log.WriteLine("old message: " + oldMessage);
-                    await PostToSlack(message, log);
-                    await PostToWebsocket(message, log);
+                    oldMessage = await GetContentFromLine(oldMessage, log);
+                    await PostToSlack(oldMessage, log);
+                    await PostToWebsocket(oldMessage, log);
                 }
             }
 
-            log.WriteLine(message);
-
+            log.WriteLine("before :" + message);
             message = await GetContentFromLine(message, log);
-            log.WriteLine(message);
+            log.WriteLine("after :" + message);
 
             await PostToSlack(message, log);
             await PostToWebsocket(message, log);
@@ -169,7 +170,7 @@ namespace WeddingPhotoSharing.WebJob
             }
         }
 
-        private static Task PostToSlack(string message, TextWriter log)
+        private static async Task PostToSlack(string message, TextWriter log)
         {
             try
             {
@@ -180,13 +181,12 @@ namespace WeddingPhotoSharing.WebJob
                 var json = JsonConvert.SerializeObject(slackMessage);
                 using (var content = new StringContent(json, Encoding.UTF8, "application/json"))
                 {
-                    return httpClient.PostAsync(SlackWebhookPath, content);
+                    await httpClient.PostAsync(SlackWebhookPath, content);
                 }
             }
             catch (Exception ex)
             {
                 log.WriteLine("PostToSlack: " + ex.ToString());
-                return Task.CompletedTask;
             }
         }
 
