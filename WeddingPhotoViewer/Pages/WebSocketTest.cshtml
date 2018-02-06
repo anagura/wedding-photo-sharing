@@ -32,6 +32,12 @@
 </table>
 
 @section Scripts{
+    <environment include="Development">
+        <script type="text/javascript" src="~/lib/jquery/dist/jquery.js"></script>
+    </environment>
+    <environment exclude="Development">
+        <script type="text/javascript" src="~/lib/jquery/dist/jquery.min.js"></script>
+    </environment>
     <script>
         var connectionForm = document.getElementById("connectionForm");
         var connectionUrl = document.getElementById("connectionUrl");
@@ -46,7 +52,7 @@
         var scheme = document.location.protocol == "https:" ? "wss" : "ws";
         var port = document.location.port ? (":" + document.location.port) : "";
 
-        connectionUrl.value = scheme + "://" + document.location.hostname + port + "/echo";
+        connectionUrl.value = scheme + "://" + document.location.hostname + port + "/photo";
 
         function updateState() {
             function disable() {
@@ -124,17 +130,24 @@
             };
             socket.onclose = function (event) {
                 updateState();
+                console.dir(event);
                 commsLog.innerHTML += '<tr>' +
                     '<td colspan="3" class="commslog-data">Connection closed. Code: ' + htmlEscape(event.code) + '. Reason: ' + htmlEscape(event.reason) + '</td>' +
                     '</tr>';
             };
             socket.onerror = updateState;
             socket.onmessage = function (event) {
-                commsLog.innerHTML += '<tr>' +
-                    '<td class="commslog-server">Server</td>' +
-                    '<td class="commslog-client">Client</td>' +
-                    '<td class="commslog-data">' + htmlEscape(event.data) + '</td>'
-                '</tr>';
+
+                var data = JSON.parse(event.data);
+                var len = data.length;
+
+                for (var i = 0; i < len; i++) {
+                    commsLog.innerHTML += '<tr>' +
+                        '<td class="commslog-server">Server</td>' +
+                        '<td class="commslog-client">Client</td>' +
+                        '<td class="commslog-data">' + data[i].name + '<img src=' + data[i].imageUrl+ ' /></td>'
+                    '</tr>';
+                }
             };
         };
 
