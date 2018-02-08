@@ -16,18 +16,17 @@ namespace WeddingPhotoViewer
         {
             var id = context.TraceIdentifier;
             browsers[id] = webSocket;
-            var cancellToken = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
             try
             {
                 var buffer = new byte[1024 * 4];
-                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellToken.Token);
+                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 while (!result.CloseStatus.HasValue)
                 {
                     // browser keep alive message
-                    result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellToken.Token);
+                    result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 }
-                await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, cancellToken.Token);
+                await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
                 browsers.Remove(id);
             }
             catch (TaskCanceledException)
