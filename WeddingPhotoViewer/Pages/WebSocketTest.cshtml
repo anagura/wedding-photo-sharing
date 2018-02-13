@@ -52,7 +52,7 @@
         var scheme = document.location.protocol == "https:" ? "wss" : "ws";
         var port = document.location.port ? (":" + document.location.port) : "";
 
-        connectionUrl.value = scheme + "://" + document.location.hostname + port + "/photo";
+        connectionUrl.value = scheme + "://" + document.location.hostname + port + "/webjob";
 
         function updateState() {
             function disable() {
