@@ -5,13 +5,14 @@ using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace WeddingPhotoViewer
 {
     public class WebSocketHandler
     {
         private Dictionary<string, WebSocket> browsers = new Dictionary<string, WebSocket>();
-        private List<WebSocketMessage> messageList = new List<WebSocketMessage>();
+        private ConcurrentQueue<WebSocketMessage> messageQueue = new ConcurrentQueue<WebSocketMessage>();
 
         public async Task Photo(HttpContext context, WebSocket webSocket)
         {
@@ -21,7 +22,7 @@ namespace WeddingPhotoViewer
             try
             {
                 // send queued message
-                foreach (var msg in messageList)
+                foreach (var msg in messageQueue)
                 {
                     await webSocket.SendAsync(msg.Message, msg.MessageType, msg.EndOfMessage, CancellationToken.None);
                 }
@@ -34,16 +35,12 @@ namespace WeddingPhotoViewer
                     result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 }
                 await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
-                browsers.Remove(id);
-            }
-            catch (TaskCanceledException)
-            {
-                browsers.Remove(id);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine("{0} is disconnected.{1}", id, ex);
             }
+            browsers.Remove(id);
         }
 
         public async Task Webjob(HttpContext context, WebSocket webSocket)
@@ -54,14 +51,22 @@ namespace WeddingPhotoViewer
             {
                 // 内部キューに保存
                 var sendMessage = new ArraySegment<byte>(buffer, 0, result.Count);
-                messageList.Add(new WebSocketMessage(){
+
+                var oneMsg = new WebSocketMessage()
+                {
                     EndOfMessage = result.EndOfMessage,
                     MessageType = result.MessageType,
-                    Message = sendMessage
-                });
+                };
+                var queueBuffer = new byte[1024 * 4];
+                sendMessage.CopyTo(queueBuffer);
+                oneMsg.Message = new ArraySegment<byte>(queueBuffer, 0, result.Count);
+                messageQueue.Enqueue(oneMsg);
 
-                if (messageList.Count() > 10) {
-                    messageList.Remove(messageList.FirstOrDefault());
+                if (messageQueue.Count() > 10) {
+                    if (messageQueue.TryDequeue(out WebSocketMessage msg))
+                    {
+                        Console.WriteLine(msg.ToString());
+                    }
                 }
 
                 List<string> deleteList = new List<string>();
@@ -81,7 +86,6 @@ namespace WeddingPhotoViewer
                     catch (Exception ex)
                     {
                         // ignore
-                        Console.WriteLine(ex);
                         deleteList.Add(browser.Key);
                     }
                 }

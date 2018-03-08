@@ -102,10 +102,12 @@ namespace WeddingPhotoSharing.WebJob
                 {
                     WebSocketMessage result = new WebSocketMessage();
 
-                    var fileName = eventMessage.Message.Id.ToString() + ".jpg";
                     string userId = eventMessage.Source.UserId;
                     var profile = await lineMessagingClient.GetProfile(userId);
                     result.Name = profile.DisplayName;
+                    result.MessageType = (int)eventMessage.Message.Type;
+                    var ext = eventMessage.Message.Type == MessageType.Video ? ".mpg" : ".jpg";
+                    var fileName = eventMessage.Message.Id.ToString() + ext;
 
                     byte[] image;
                     if (eventMessage.Message.Type == MessageType.Text)
@@ -129,6 +131,15 @@ namespace WeddingPhotoSharing.WebJob
                         UploadImageToStorage(fileName, lineResult.Result);
                         result.ImageUrl = GetUrl(fileName);
                     }
+                    else if (eventMessage.Message.Type == MessageType.Video)
+                    {
+                        // LINEから画像を取得
+                        var lineResult = lineMessagingClient.GetMessageContent(eventMessage.Message.Id.ToString());
+
+                        // 画像をストレージにアップロード
+                        UploadVideoToStorage(fileName, lineResult.Result);
+                        result.ImageUrl = GetUrl(fileName);
+                    }
                     else
                     {
                         log.WriteLine("not supported message type:" + eventMessage.Message.Type);
@@ -146,6 +157,14 @@ namespace WeddingPhotoSharing.WebJob
         {
             CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
             blockBlob.Properties.ContentType = "image/jpeg";
+
+            await blockBlob.UploadFromByteArrayAsync(image, 0, image.Length);
+        }
+
+        private static async void UploadVideoToStorage(string fileName, byte[] image)
+        {
+            CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
+            blockBlob.Properties.ContentType = "video/mpeg";
 
             await blockBlob.UploadFromByteArrayAsync(image, 0, image.Length);
         }
@@ -221,6 +240,9 @@ namespace WeddingPhotoSharing.WebJob
     {
         [JsonProperty("name")]
         public string Name { get; set; }
+
+        [JsonProperty("messageType")]
+        public int MessageType { get; set; }
 
         [JsonProperty("imageUrl")]
         public string ImageUrl { get; set; }

@@ -179,9 +179,21 @@
                 var data = JSON.parse(event.data);
                 var len = data.length;
 
-                for (var i = 0; i < len; i++) {
-                    addPhotoByUrl(data[i].imageUrl);
-                    console.log(data[i].name + ' / ' + data[i].imageUrl);
+                try {
+                    for (var i = 0; i < len; i++) {
+                        if (data[i].messageType == 2) {
+                            createVideo(data[i].imageUrl);
+                        } else if (data[i].messageType == 1 || data[i].messageType == 0) {
+                            addPhotoByUrl(data[i].imageUrl);
+                        } else {
+                            console.log("unknown message type.");
+                            continue;
+                        }
+                        console.log(data[i].name + ' / ' + data[i].imageUrl);
+                    }
+                } catch(e) {
+
+                    console.log(e);
                 }
             };
         };
