@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using WeddingPhotoViewer.Data;
 using WeddingPhotoViewer.Services;
@@ -42,17 +43,20 @@ namespace WeddingPhotoViewer
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
+
             if (env.IsDevelopment())
             {
                 app.UseBrowserLink();
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
+                loggerFactory.AddConsole(LogLevel.Debug);
             }
             else
             {
                 app.UseExceptionHandler("/Error");
+                loggerFactory.AddConsole(LogLevel.Warning);
             }
 
             app.UseStaticFiles();
@@ -69,7 +73,7 @@ namespace WeddingPhotoViewer
 
             app.UseWebSockets(webSocketOptions);
 
-            var webSocketHandler = new WebSocketHandler();
+            var webSocketHandler = new WebSocketHandler(loggerFactory);
 
             app.Use(async (context, next) =>
             {

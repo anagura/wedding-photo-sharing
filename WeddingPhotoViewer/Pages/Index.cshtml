@@ -176,6 +176,16 @@
             };
             socket.onmessage = function (event) {
 
+                if (event.type == "message") {
+                    if (event.data == "hey") {
+                        socket.send("hoi");
+                        console.log("ping received. pong send.");
+                        return;
+                    } else if (event.data == "hoi") {
+                        console.log("pong received. ");
+                        return;
+                    }
+                }
                 var data = JSON.parse(event.data);
                 var len = data.length;
 
