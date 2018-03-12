@@ -35,7 +35,7 @@ namespace WeddingPhotoSharing.WebJob
 
         private static readonly string ImageGeneratorTemplate;
 
-        private static readonly ClientWebSocket webSocket;
+        private static ClientWebSocket webSocket;
         private static readonly ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
         private static readonly LineMessagingClient lineMessagingClient;
 
@@ -179,8 +179,10 @@ namespace WeddingPhotoSharing.WebJob
             try
             {
                 // set timeout
-                var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                webSocket = new ClientWebSocket();
+                webSocket.Options.KeepAliveInterval = TimeSpan.FromMinutes(1);
 
+                var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 webSocket.ConnectAsync(new Uri(WebsocketServerUrl), cancellationTokenSource.Token).FireAndForget(log);
             }
             catch (Exception ex)
