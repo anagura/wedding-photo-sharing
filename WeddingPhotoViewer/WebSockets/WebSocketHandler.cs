@@ -55,12 +55,9 @@ namespace WeddingPhotoViewer
                 logger.LogInformation("clinet {0} is connected.", id);
             }
 
-            var cancelTokenPing = new CancellationTokenSource();
-
+            bool isError = true;
             try
             {
-                SetPing(webSocket, cancelTokenPing);
-
                 // send queued message
                 foreach (var msg in messageQueue)
                 {
@@ -78,11 +75,8 @@ namespace WeddingPhotoViewer
                         var msg = System.Text.Encoding.UTF8.GetString(buffer.Take(result.Count).ToArray());
                         if (msg == PING_MESSAGE)
                         {
-                            logger.LogInformation("ping received.:\"{0}\"\n", msg);
-                        }
-                        else if (msg == PONG_MESSAGE)
-                        {
-                            logger.LogInformation("pong received.:\"{0}\"\n", msg);
+                            logger.LogInformation("[{0}]ping received.:\"{1}\"\n", id, msg);
+                            await webSocket.SendAsync(System.Text.Encoding.UTF8.GetBytes(PONG_MESSAGE), WebSocketMessageType.Text, true, CancellationToken.None);
                         } else
                         {
                             logger.LogInformation("unknown message received.\"{0}\"\n", msg);
@@ -94,18 +88,29 @@ namespace WeddingPhotoViewer
                     }
                 }
                 await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+                isError = false;
             }
             catch (OperationCanceledException oex)
             {
-                logger.LogError("{0} is disconnected.{1}", id, oex);
+                logger.LogError("{0} is disconnected by timeout.{1}", id, oex);
             }
             catch (Exception ex)
             {
                 logger.LogError("{0} is disconnected.{1}", id, ex);
             }
 
-            // stop ping
-            cancelTokenPing.Cancel();
+            // 念のため切断処理もしておく
+            if (isError)
+            {
+                try
+                {
+                    await webSocket.CloseAsync(WebSocketCloseStatus.Empty, "closed by exception", CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError("{0} is Close failed.{1}", id, ex);
+                }
+            }
 
             if (browsers.TryRemove(id, out WebSocket socket)) {
                 logger.LogInformation("clinet {0} is removed.", id);

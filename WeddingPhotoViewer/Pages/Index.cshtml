@@ -162,26 +162,28 @@
                 .replace(/>/g, '&gt;');
         }
 
+        function sendPing() {
+            socket.send("hey");
+        }
         window.onload = function () {
             socket = new ReconnectingWebSocket(connectionUrl);
             socket.onopen = function (event) {
                 console.log("on open");
+                setInterval(sendPing, 5000);
             };
             socket.onclose = function (event) {
                 console.log("on close");
                 console.dir(event);
+                location.reload();
             };
             socket.onerror = function () {
                 console.log("on error");
+                location.reload();
             };
             socket.onmessage = function (event) {
 
                 if (event.type == "message") {
-                    if (event.data == "hey") {
-                        socket.send("hoi");
-                        console.log("ping received. pong send.");
-                        return;
-                    } else if (event.data == "hoi") {
+                    if (event.data == "hoi") {
                         console.log("pong received. ");
                         return;
                     }
