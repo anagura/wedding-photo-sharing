@@ -48,6 +48,8 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly CloudBlobClient blobClient;
         private static readonly CloudBlobContainer container;
 
+        private const int ImageHeight = 300;
+
         static Functions()
         {
             webSocket = new ClientWebSocket();
@@ -124,7 +126,7 @@ namespace WeddingPhotoSharing.WebJob
 
                         // 画像をストレージにアップロード
                         UploadImageToStorage(fileName, image);
-                        result.ImageUrl = GetUrl(fileName);
+                        result.ImageUrl = result.ThumbnailImageUrl = GetUrl(fileName);
                     }
                     else if (eventMessage.Message.Type == MessageType.Image)
                     {
@@ -137,7 +139,7 @@ namespace WeddingPhotoSharing.WebJob
 
                         // サムネイル
                         var thumbnailFileName = string.Format("thunmnail_{0}{1}", eventMessage.Message.Id, ext);
-                        ResizeUpload(thumbnailFileName, lineResult.Result, 256);
+                        ResizeUpload(thumbnailFileName, lineResult.Result, ImageHeight);
                         result.ThumbnailImageUrl = GetUrl(thumbnailFileName);
 
                     }
@@ -163,15 +165,15 @@ namespace WeddingPhotoSharing.WebJob
             return JsonConvert.SerializeObject(lineMessages);
         }
 
-        private static void ResizeUpload(string fileName, byte[] sourceImage, int width)
+        private static void ResizeUpload(string fileName, byte[] sourceImage, int height)
         {
             using (Image<Rgba32> image = SixLabors.ImageSharp.Image.Load(sourceImage))
             {
-                if (image.Width > width)
+                if (image.Height > height)
                 {
-                    int ratio = width / image.Width;
+                    int ratio = height / image.Height;
                     image.Mutate(x => x
-                                 .Resize(width, image.Height * ratio));
+                                 .Resize(image.Width * ratio, height));
                 }
 
                 using (var ms = new MemoryStream())

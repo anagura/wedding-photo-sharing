@@ -108,8 +108,8 @@
                 margins: 5
             });
         }
-        function addPhotoByUrl(image) {
-            gallery.prepend(`<a href="${image}"><img alt= "Title 1" src= "${image}" /></a >`);
+        function addPhotoByUrl(image, thumbnailImage) {
+            gallery.prepend(`<a href="${image}"><img alt= "Title 1" src= "${thumbnailImage}" /></a >`);
             gallery.justifiedGallery({
                 rowHeight: 300,
                 margins: 5
@@ -196,7 +196,7 @@
                         if (data[i].messageType == 2) {
                             createVideo(data[i].imageUrl);
                         } else if (data[i].messageType == 1 || data[i].messageType == 0) {
-                            addPhotoByUrl(data[i].imageUrl);
+                            addPhotoByUrl(data[i].imageUrl, data[i].thumbnailImageUrl);
                         } else {
                             console.log("unknown message type.");
                             continue;
