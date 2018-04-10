@@ -15,6 +15,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using LineMessaging;
 using ImageGeneration;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
 
 namespace WeddingPhotoSharing.WebJob
 {
@@ -130,6 +134,12 @@ namespace WeddingPhotoSharing.WebJob
                         // 画像をストレージにアップロード
                         UploadImageToStorage(fileName, lineResult.Result);
                         result.ImageUrl = GetUrl(fileName);
+
+                        // サムネイル
+                        var thumbnailFileName = string.Format("thunmnail_{0}{1}", eventMessage.Message.Id, ext);
+                        ResizeUpload(thumbnailFileName, lineResult.Result, 256);
+                        result.ThumbnailImageUrl = GetUrl(thumbnailFileName);
+
                     }
                     else if (eventMessage.Message.Type == MessageType.Video)
                     {
@@ -151,6 +161,34 @@ namespace WeddingPhotoSharing.WebJob
             }
 
             return JsonConvert.SerializeObject(lineMessages);
+        }
+
+        private static void ResizeUpload(string fileName, byte[] sourceImage, int width)
+        {
+            using (Image<Rgba32> image = SixLabors.ImageSharp.Image.Load(sourceImage))
+            {
+                if (image.Width > width)
+                {
+                    int ratio = width / image.Width;
+                    image.Mutate(x => x
+                                 .Resize(width, image.Height * ratio));
+                }
+
+                using (var ms = new MemoryStream())
+                {
+                    image.SaveAsJpeg(ms);
+                    ms.Position = 0;    //Move the pointer to the start of stream.
+                    UploadStreamImageToStorage(fileName, ms);
+                }
+            }
+        }
+
+        private static async void UploadStreamImageToStorage(string fileName, Stream stream)
+        {
+            CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
+            blockBlob.Properties.ContentType = "image/jpeg";
+
+            await blockBlob.UploadFromStreamAsync(stream);
         }
 
         private static async void UploadImageToStorage(string fileName, byte[] image)
@@ -248,6 +286,9 @@ namespace WeddingPhotoSharing.WebJob
 
         [JsonProperty("imageUrl")]
         public string ImageUrl { get; set; }
+
+        [JsonProperty("thumbnailImageUrl")]
+        public string ThumbnailImageUrl { get; set; }
     }
 
     public class SlackMessage
