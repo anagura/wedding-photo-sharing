@@ -1,0 +1,19 @@
+﻿<Window x:Class="ImageGeneratorTest.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ImageGeneratorTest"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="650" Width="800">
+    <Grid Margin="0,0,0,-114.5">
+        <TextBox x:Name="textBoxXaml" HorizontalAlignment="Left" Height="171" Margin="22,21,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="748" Text="{Binding Path=Xaml}" />
+        <Button x:Name="button" Content="生成" HorizontalAlignment="Left" Margin="695,285,0,0" VerticalAlignment="Top" Width="75" RenderTransformOrigin="5.404,-3.616" Click="button_Click"/>
+        <Image x:Name="generateImageView" HorizontalAlignment="Left" Height="300" Margin="30,211,0,0" VerticalAlignment="Top" Width="300" />
+        <TextBox x:Name="textBoxMessage" HorizontalAlignment="Left" Height="23" Margin="400,214,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="370"  Text="{Binding Path=Message}" />
+        <Label x:Name="label" Content="メッセージ:" HorizontalAlignment="Left" Margin="339,211,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label1" Content="名前：" HorizontalAlignment="Left" Margin="339,242,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="textBoxName" HorizontalAlignment="Left" Height="23" Margin="400,246,0,0" TextWrapping="Wrap"  VerticalAlignment="Top" Width="370"  Text="{Binding Path=Name}"/>
+
+    </Grid>
+</Window>
