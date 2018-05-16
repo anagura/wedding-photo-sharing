@@ -108,8 +108,8 @@
                 margins: 5
             });
         }
-        function addPhotoByUrl(image, thumbnailImage) {
-            gallery.prepend(`<a href="${image}"><img alt= "Title 1" src= "${thumbnailImage}" /></a >`);
+        function addPhotoByUrl(image, thumbnailImage, title) {
+            gallery.prepend(`<a href="${image}"><img alt= "${title}" src= "${thumbnailImage}" /></a >`);
             gallery.justifiedGallery({
                 rowHeight: 300,
                 margins: 5
@@ -174,11 +174,10 @@
             socket.onclose = function (event) {
                 console.log("on close");
                 console.dir(event);
-                location.reload();
             };
             socket.onerror = function () {
                 console.log("on error");
-                location.reload();
+                alert("socket error");
             };
             socket.onmessage = function (event) {
 
@@ -196,7 +195,7 @@
                         if (data[i].messageType == 2) {
                             createVideo(data[i].imageUrl);
                         } else if (data[i].messageType == 1 || data[i].messageType == 0) {
-                            addPhotoByUrl(data[i].imageUrl, data[i].thumbnailImageUrl);
+                            addPhotoByUrl(data[i].imageUrl, data[i].thumbnailImageUrl, data[i].name + "さんからの投稿");
                         } else {
                             console.log("unknown message type.");
                             continue;
