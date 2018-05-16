@@ -155,9 +155,11 @@ namespace WeddingPhotoSharing.WebJob
                     else
                     {
                         log.WriteLine("not supported message type:" + eventMessage.Message.Type);
+                        await lineMessagingClient.ReplyMessage(eventMessage.ReplyToken, "未対応のメッセージです。テキストか画像を投稿してください");
                         continue;
                     }
 
+                    await lineMessagingClient.ReplyMessage(eventMessage.ReplyToken, "投稿を受け付けました。表示されるまで少々お待ちください。");
                     lineMessages.Add(result);
                 }
             }
