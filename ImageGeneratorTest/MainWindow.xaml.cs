@@ -1,4 +1,5 @@
 ﻿using ImageGeneration;
+using System;
 using System.ComponentModel;
 using System.Dynamic;
 using System.IO;
@@ -110,17 +111,32 @@ namespace ImageGeneratorTest
             viewModel.Name = textBoxName.Text;
             viewModel.Text = textBoxMessage.Text;
             string template = xamlPrefix + textBoxXaml.Text + xamlPostfix;
-            var generateImage = ImageGenerator.GenerateImage(template, viewModel);
+            try
+            {
+                var generateImage = ImageGenerator.GenerateImage(template, viewModel);
 
-            BitmapImage biImg = new BitmapImage();
-            MemoryStream ms = new MemoryStream(generateImage);
-            biImg.BeginInit();
-            biImg.StreamSource = ms;
-            biImg.EndInit();
+                BitmapImage biImg = new BitmapImage();
+                MemoryStream ms = new MemoryStream(generateImage);
+                biImg.BeginInit();
+                biImg.StreamSource = ms;
+                biImg.EndInit();
 
-            // 画像を表示
-            generateImageView.Source = biImg;
+                // 画像を表示
+                generateImageView.Source = biImg;
 
+                // 保存しておく
+                File.WriteAllBytes("TextPanel.jpg", generateImage);
+                File.WriteAllText("TextPanel.xaml", template);
+
+                // ログ
+                File.AppendAllText("TextPanel.log",
+                    string.Format("{0}\n{1}\n---\n", DateTime.Now.ToString(),template));
+                textBoxLog.Text = DateTime.Now.ToString() + " success.";
+            }
+            catch (Exception ex)
+            {
+                textBoxLog.Text = ex.ToString();
+            }
         }
     }
 }
