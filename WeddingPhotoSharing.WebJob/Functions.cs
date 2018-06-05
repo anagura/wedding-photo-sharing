@@ -89,9 +89,7 @@ namespace WeddingPhotoSharing.WebJob
                 }
             }
 
-            log.WriteLine("before :" + message);
             message = await GetContentFromLine(message, log);
-            log.WriteLine("after :" + message);
 
             await PostToSlack(message, log);
             await PostToWebsocket(message, log);
@@ -125,7 +123,7 @@ namespace WeddingPhotoSharing.WebJob
                         image = ImageGenerator.GenerateImage(ImageGeneratorTemplate, viewModel);
 
                         // 画像をストレージにアップロード
-                        UploadImageToStorage(fileName, image);
+                        await UploadImageToStorage(fileName, image);
                         result.ImageUrl = result.ThumbnailImageUrl = GetUrl(fileName);
                     }
                     else if (eventMessage.Message.Type == MessageType.Image)
@@ -134,44 +132,34 @@ namespace WeddingPhotoSharing.WebJob
                         var lineResult = lineMessagingClient.GetMessageContent(eventMessage.Message.Id.ToString());
 
                         // 画像をストレージにアップロード
-                        UploadImageToStorage(fileName, lineResult.Result);
+                        await UploadImageToStorage(fileName, lineResult.Result);
                         result.ImageUrl = GetUrl(fileName);
 
                         // サムネイル
-                        var thumbnailFileName = string.Format("thunmnail_{0}{1}", eventMessage.Message.Id, ext);
-                        ResizeUpload(thumbnailFileName, lineResult.Result, ImageHeight);
+                        var thumbnailFileName = string.Format("thumbnail_{0}{1}", eventMessage.Message.Id, ext);
+                        await ResizeUpload(thumbnailFileName, lineResult.Result, ImageHeight);
                         result.ThumbnailImageUrl = GetUrl(thumbnailFileName);
 
                     }
-                    else if (eventMessage.Message.Type == MessageType.Video)
+/*
+                   else if (eventMessage.Message.Type == MessageType.Video)
                     {
                         // LINEから画像を取得
                         var lineResult = lineMessagingClient.GetMessageContent(eventMessage.Message.Id.ToString());
 
                         // 画像をストレージにアップロード
-                        UploadVideoToStorage(fileName, lineResult.Result);
+                        await UploadVideoToStorage(fileName, lineResult.Result);
                         result.ImageUrl = GetUrl(fileName);
                     }
+ */
                     else
                     {
                         log.WriteLine("not supported message type:" + eventMessage.Message.Type);
-                        try
-                        {
-                            await lineMessagingClient.ReplyMessage(eventMessage.ReplyToken, "未対応のメッセージです。テキストか画像を投稿してください");
-                        } catch(Exception ex)
-                        {
-                            log.WriteLine(ex.ToString());
-                        }
+                        await ReplyToLine(eventMessage.ReplyToken, "未対応のメッセージです。テキストか画像を投稿してください", log);
                         continue;
                     }
 
-                    try
-                    {
-                        await lineMessagingClient.ReplyMessage(eventMessage.ReplyToken, "投稿を受け付けました。表示されるまで少々お待ちください。");
-                    } catch (Exception ex)
-                    {
-                        log.WriteLine(ex.ToString());
-                    }
+                    await ReplyToLine(eventMessage.ReplyToken, "投稿を受け付けました。表示されるまで少々お待ちください。", log);
                     lineMessages.Add(result);
                 }
             }
@@ -179,7 +167,24 @@ namespace WeddingPhotoSharing.WebJob
             return JsonConvert.SerializeObject(lineMessages);
         }
 
-        private static void ResizeUpload(string fileName, byte[] sourceImage, int height)
+        private static async Task ReplyToLine(string replyToken, string message, TextWriter log)
+        {
+            try
+            {
+                await lineMessagingClient.ReplyMessage(replyToken, message);
+            }
+            catch (LineMessagingException lex)
+            {
+                log.WriteLine(string.Format("message:{0}, source:{1}, token:{2}", lex.Message, lex.Source, replyToken));
+            }
+            catch (Exception ex)
+            {
+                log.WriteLine(ex.ToString());
+            }
+        }
+
+
+        private static async Task ResizeUpload(string fileName, byte[] sourceImage, int height)
         {
             using (Image<Rgba32> image = SixLabors.ImageSharp.Image.Load(sourceImage))
             {
@@ -194,12 +199,12 @@ namespace WeddingPhotoSharing.WebJob
                 {
                     image.SaveAsJpeg(ms);
                     ms.Position = 0;    //Move the pointer to the start of stream.
-                    UploadStreamImageToStorage(fileName, ms);
+                    await UploadStreamImageToStorage(fileName, ms);
                 }
             }
         }
 
-        private static async void UploadStreamImageToStorage(string fileName, Stream stream)
+        private static async Task UploadStreamImageToStorage(string fileName, Stream stream)
         {
             CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
             blockBlob.Properties.ContentType = "image/jpeg";
@@ -207,7 +212,7 @@ namespace WeddingPhotoSharing.WebJob
             await blockBlob.UploadFromStreamAsync(stream);
         }
 
-        private static async void UploadImageToStorage(string fileName, byte[] image)
+        private static async Task UploadImageToStorage(string fileName, byte[] image)
         {
             CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
             blockBlob.Properties.ContentType = "image/jpeg";
@@ -215,7 +220,7 @@ namespace WeddingPhotoSharing.WebJob
             await blockBlob.UploadFromByteArrayAsync(image, 0, image.Length);
         }
 
-        private static async void UploadVideoToStorage(string fileName, byte[] image)
+        private static async Task UploadVideoToStorage(string fileName, byte[] image)
         {
             CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
             blockBlob.Properties.ContentType = "video/mpeg";
