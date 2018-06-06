@@ -18,7 +18,8 @@ using ImageGeneration;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-
+using System.Net.Http.Headers;
+using System.Linq;
 
 namespace WeddingPhotoSharing.WebJob
 {
@@ -36,7 +37,9 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly string LineMediaContainerName = AppSettings.LineMediaContainerName;
         private static readonly string StorageAccountName = AppSettings.StorageAccountName;
         private static readonly string StorageAccountKey = AppSettings.StorageAccountKey;
+        private static readonly string VisionSubscriptionKey = AppSettings.VisionSubscriptionKey;
 
+        private static readonly string VisionUrl = "https://westcentralus.api.cognitive.microsoft.com/vision/v2.0/analyze";
         private static readonly string ImageGeneratorTemplate;
 
         private static ClientWebSocket webSocket;
@@ -90,9 +93,11 @@ namespace WeddingPhotoSharing.WebJob
             }
 
             message = await GetContentFromLine(message, log);
-
-            await PostToSlack(message, log);
-            await PostToWebsocket(message, log);
+            if (!string.IsNullOrEmpty(message))
+            {
+                await PostToSlack(message, log);
+                await PostToWebsocket(message, log);
+            }
         }
 
         private static async Task<string> GetContentFromLine(string message, TextWriter log)
@@ -135,11 +140,20 @@ namespace WeddingPhotoSharing.WebJob
                         await UploadImageToStorage(fileName, lineResult.Result);
                         result.ImageUrl = GetUrl(fileName);
 
+                        // エロ画像チェック
+                        string vision_result = await MakeAnalysisRequest(lineResult.Result);
+                        var vision = JsonConvert.DeserializeObject<VisionAdultResult>(vision_result);
+                        if (vision.Adult.isAdultContent)
+                        {
+                            await ReplyToLine(eventMessage.ReplyToken, string.Format("ちょっと嫌な予感がするので、この写真は却下します。\nscore:{0}", vision.Adult.adultScore), log);
+                            continue;
+                        }
+                        await PostToSlack(vision_result, log);
+
                         // サムネイル
                         var thumbnailFileName = string.Format("thumbnail_{0}{1}", eventMessage.Message.Id, ext);
                         await ResizeUpload(thumbnailFileName, lineResult.Result, ImageHeight);
                         result.ThumbnailImageUrl = GetUrl(thumbnailFileName);
-
                     }
 /*
                    else if (eventMessage.Message.Type == MessageType.Video)
@@ -164,7 +178,7 @@ namespace WeddingPhotoSharing.WebJob
                 }
             }
 
-            return JsonConvert.SerializeObject(lineMessages);
+            return lineMessages.Any() ? JsonConvert.SerializeObject(lineMessages) : string.Empty;
         }
 
         private static async Task ReplyToLine(string replyToken, string message, TextWriter log)
@@ -295,6 +309,154 @@ namespace WeddingPhotoSharing.WebJob
                 return Task.CompletedTask;
             }
         }
+
+        private static async Task<string> MakeAnalysisRequest(byte[] byteData)
+        {
+            string contentString = string.Empty;
+
+            try
+            {
+                HttpClient client = new HttpClient();
+
+                // Request headers.
+                client.DefaultRequestHeaders.Add(
+                    "Ocp-Apim-Subscription-Key", VisionSubscriptionKey);
+
+                // Request parameters. A third optional parameter is "details".
+                string requestParameters = "visualFeatures=Adult";
+
+                // Assemble the URI for the REST API Call.
+                string uri = VisionUrl + "?" + requestParameters;
+
+                HttpResponseMessage response;
+
+                // Request body. Posts a locally stored JPEG image.
+//                byte[] byteData = GetImageAsByteArray(imageFilePath);
+
+                using (ByteArrayContent content = new ByteArrayContent(byteData))
+                {
+                    // This example uses content type "application/octet-stream".
+                    // The other content types you can use are "application/json"
+                    // and "multipart/form-data".
+                    content.Headers.ContentType =
+                        new MediaTypeHeaderValue("application/octet-stream");
+
+                    // Make the REST API call.
+                    response = await client.PostAsync(uri, content);
+                }
+
+                // Get the JSON response.
+                contentString = await response.Content.ReadAsStringAsync();
+
+                // Display the JSON response.
+                Console.WriteLine("\nResponse:\n");
+                Console.WriteLine(JsonPrettyPrint(contentString));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("\n" + e.Message);
+            }
+
+            return contentString;
+        }
+
+        /// <summary>
+        /// Returns the contents of the specified file as a byte array.
+        /// </summary>
+        /// <param name="imageFilePath">The image file to read.</param>
+        /// <returns>The byte array of the image data.</returns>
+        private static byte[] GetImageAsByteArray(string imageFilePath)
+        {
+            using (FileStream fileStream =
+                new FileStream(imageFilePath, FileMode.Open, FileAccess.Read))
+            {
+                BinaryReader binaryReader = new BinaryReader(fileStream);
+                return binaryReader.ReadBytes((int)fileStream.Length);
+            }
+        }
+
+        /// <summary>
+        /// Formats the given JSON string by adding line breaks and indents.
+        /// </summary>
+        /// <param name="json">The raw JSON string to format.</param>
+        /// <returns>The formatted JSON string.</returns>
+        private static string JsonPrettyPrint(string json)
+        {
+            if (string.IsNullOrEmpty(json))
+                return string.Empty;
+
+            json = json.Replace(Environment.NewLine, "").Replace("\t", "");
+
+            string INDENT_STRING = "    ";
+            var indent = 0;
+            var quoted = false;
+            var sb = new StringBuilder();
+            for (var i = 0; i < json.Length; i++)
+            {
+                var ch = json[i];
+                switch (ch)
+                {
+                    case '{':
+                    case '[':
+                        sb.Append(ch);
+                        if (!quoted)
+                        {
+                            sb.AppendLine();
+                            Enumerable.Range(0, ++indent).ForEach(
+                                item => sb.Append(INDENT_STRING));
+                        }
+                        break;
+                    case '}':
+                    case ']':
+                        if (!quoted)
+                        {
+                            sb.AppendLine();
+                            Enumerable.Range(0, --indent).ForEach(
+                                item => sb.Append(INDENT_STRING));
+                        }
+                        sb.Append(ch);
+                        break;
+                    case '"':
+                        sb.Append(ch);
+                        bool escaped = false;
+                        var index = i;
+                        while (index > 0 && json[--index] == '\\')
+                            escaped = !escaped;
+                        if (!escaped)
+                            quoted = !quoted;
+                        break;
+                    case ',':
+                        sb.Append(ch);
+                        if (!quoted)
+                        {
+                            sb.AppendLine();
+                            Enumerable.Range(0, indent).ForEach(
+                                item => sb.Append(INDENT_STRING));
+                        }
+                        break;
+                    case ':':
+                        sb.Append(ch);
+                        if (!quoted)
+                            sb.Append(" ");
+                        break;
+                    default:
+                        sb.Append(ch);
+                        break;
+                }
+            }
+            return sb.ToString();
+        }
+    }
+
+    static class Extensions
+    {
+        public static void ForEach<T>(this IEnumerable<T> ie, Action<T> action)
+        {
+            foreach (var i in ie)
+            {
+                action(i);
+            }
+        }
     }
 
     public class WebSocketMessage
@@ -311,10 +473,32 @@ namespace WeddingPhotoSharing.WebJob
         [JsonProperty("thumbnailImageUrl")]
         public string ThumbnailImageUrl { get; set; }
     }
-
+    
     public class SlackMessage
     {
         [JsonProperty("text")]
         public string Text { get; set; }
     }
+
+    public class VisionAdultResult
+    {
+        [JsonProperty("adult")]
+        public VisionAdultResultDetail Adult { get; set; }
+    }
+
+    public class VisionAdultResultDetail
+    {
+        [JsonProperty("isAdultContent")]
+        public bool isAdultContent { get; set; }
+
+        [JsonProperty("adultScore")]
+        public double adultScore { get; set; }
+
+        [JsonProperty("isRacyContent")]
+        public bool isRacyContent { get; set; }
+
+        [JsonProperty("racyScore")]
+        public double racyScore { get; set; }
+    }
+
 }

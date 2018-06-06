@@ -15,5 +15,7 @@
         public static string StorageAccountName => Setting("StorageAccountName");
 
         public static string StorageAccountKey => Setting("StorageAccountKey");
+
+        public static string VisionSubscriptionKey => Setting("VisionSubscriptionKey");
     }
 }
