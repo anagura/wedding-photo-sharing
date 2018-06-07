@@ -35,6 +35,7 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly string WebsocketServerUrl = AppSettings.WebsocketServerUrl;
         private static readonly string LineAccessToken = AppSettings.LineAccessToken;
         private static readonly string LineMediaContainerName = AppSettings.LineMediaContainerName;
+        private static readonly string LineAdultMediaContainerName = AppSettings.LineAdultMediaContainerName;
         private static readonly string StorageAccountName = AppSettings.StorageAccountName;
         private static readonly string StorageAccountKey = AppSettings.StorageAccountKey;
         private static readonly string VisionSubscriptionKey = AppSettings.VisionSubscriptionKey;
@@ -50,6 +51,7 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly CloudStorageAccount storageAccount;
         private static readonly CloudBlobClient blobClient;
         private static readonly CloudBlobContainer container;
+        private static readonly CloudBlobContainer adultContainer;
 
         private const int ImageHeight = 300;
 
@@ -65,6 +67,7 @@ namespace WeddingPhotoSharing.WebJob
             storageAccount = new CloudStorageAccount(storageCredentials, true);
             blobClient = storageAccount.CreateCloudBlobClient();
             container = blobClient.GetContainerReference(LineMediaContainerName);
+            adultContainer = blobClient.GetContainerReference(LineAdultMediaContainerName);
 
             ImageGeneratorTemplate = File.ReadAllText("TextTemplates/TextPanel.xaml");
         }
@@ -136,19 +139,27 @@ namespace WeddingPhotoSharing.WebJob
                         // LINEから画像を取得
                         var lineResult = lineMessagingClient.GetMessageContent(eventMessage.Message.Id.ToString());
 
-                        // 画像をストレージにアップロード
-                        await UploadImageToStorage(fileName, lineResult.Result);
-                        result.ImageUrl = GetUrl(fileName);
-
                         // エロ画像チェック
                         string vision_result = await MakeAnalysisRequest(lineResult.Result);
+
                         var vision = JsonConvert.DeserializeObject<VisionAdultResult>(vision_result);
                         if (vision.Adult.isAdultContent)
                         {
+                            // アダルト用ストレージにアップロード
+                            await UploadImageToStorage(fileName, lineResult.Result, true);
+
+                            vision_result += ", imageUrl:" + GetUrl(fileName, true);
+                            await PostToSlack(vision_result, log);
+
                             await ReplyToLine(eventMessage.ReplyToken, string.Format("ちょっと嫌な予感がするので、この写真は却下します。\nscore:{0}", vision.Adult.adultScore), log);
                             continue;
                         }
+
                         await PostToSlack(vision_result, log);
+
+                        // 画像をストレージにアップロード
+                        await UploadImageToStorage(fileName, lineResult.Result);
+                        result.ImageUrl = GetUrl(fileName);
 
                         // サムネイル
                         var thumbnailFileName = string.Format("thumbnail_{0}{1}", eventMessage.Message.Id, ext);
@@ -226,9 +237,12 @@ namespace WeddingPhotoSharing.WebJob
             await blockBlob.UploadFromStreamAsync(stream);
         }
 
-        private static async Task UploadImageToStorage(string fileName, byte[] image)
+        private static async Task UploadImageToStorage(string fileName, byte[] image, bool isAdult = false)
         {
-            CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
+            CloudBlockBlob blockBlob = isAdult ? 
+                adultContainer.GetBlockBlobReference(fileName):
+                container.GetBlockBlobReference(fileName);
+
             blockBlob.Properties.ContentType = "image/jpeg";
 
             await blockBlob.UploadFromByteArrayAsync(image, 0, image.Length);
@@ -242,9 +256,9 @@ namespace WeddingPhotoSharing.WebJob
             await blockBlob.UploadFromByteArrayAsync(image, 0, image.Length);
         }
 
-        private static string GetUrl(string fileName)
+        private static string GetUrl(string fileName, bool isAdult = false)
         {
-            return string.Format("https://{0}.blob.core.windows.net/{1}/{2}", StorageAccountName, LineMediaContainerName, fileName);
+            return string.Format("https://{0}.blob.core.windows.net/{1}/{2}", StorageAccountName, isAdult ? LineAdultMediaContainerName : LineMediaContainerName, fileName);
         }
 
         private static void TryConnect(TextWriter log)

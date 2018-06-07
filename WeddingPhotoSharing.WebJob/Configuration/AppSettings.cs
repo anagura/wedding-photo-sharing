@@ -12,6 +12,8 @@
 
         public static string LineMediaContainerName => Setting("LineMediaContainerName");
 
+        public static string LineAdultMediaContainerName => Setting("LineAdultMediaContainerName");
+
         public static string StorageAccountName => Setting("StorageAccountName");
 
         public static string StorageAccountKey => Setting("StorageAccountKey");
