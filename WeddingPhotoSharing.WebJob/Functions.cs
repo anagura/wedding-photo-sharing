@@ -124,6 +124,8 @@ namespace WeddingPhotoSharing.WebJob
                     byte[] image;
                     if (eventMessage.Message.Type == MessageType.Text)
                     {
+                        result.Message = eventMessage.Message.Text;
+
                         // テキストを画像化
                         dynamic viewModel = new ExpandoObject();
                         viewModel.Name = result.Name;
@@ -480,6 +482,9 @@ namespace WeddingPhotoSharing.WebJob
 
         [JsonProperty("messageType")]
         public int MessageType { get; set; }
+
+        [JsonProperty("message")]
+        public string Message { get; set; }
 
         [JsonProperty("imageUrl")]
         public string ImageUrl { get; set; }
