@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.WebJobs;
+﻿using Microsoft.Azure;
+using Microsoft.Azure.WebJobs;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Auth;
@@ -20,6 +21,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System.Net.Http.Headers;
 using System.Linq;
+using Microsoft.WindowsAzure.Storage.Table;
 
 namespace WeddingPhotoSharing.WebJob
 {
@@ -36,6 +38,7 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly string LineAccessToken = AppSettings.LineAccessToken;
         private static readonly string LineMediaContainerName = AppSettings.LineMediaContainerName;
         private static readonly string LineAdultMediaContainerName = AppSettings.LineAdultMediaContainerName;
+        private static readonly string LineMessageTableName = AppSettings.LineMessageTableName;
         private static readonly string StorageAccountName = AppSettings.StorageAccountName;
         private static readonly string StorageAccountKey = AppSettings.StorageAccountKey;
         private static readonly string VisionSubscriptionKey = AppSettings.VisionSubscriptionKey;
@@ -47,11 +50,18 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
         private static readonly LineMessagingClient lineMessagingClient;
 
+        // Azure Storage
         private static readonly StorageCredentials storageCredentials;
         private static readonly CloudStorageAccount storageAccount;
+
+        // 画像格納のBlob
         private static readonly CloudBlobClient blobClient;
         private static readonly CloudBlobContainer container;
         private static readonly CloudBlobContainer adultContainer;
+
+        // メッセージ格納のTable
+        private static readonly CloudTableClient tableClient;
+        private static readonly CloudTable table;
 
         private const int ImageHeight = 300;
 
@@ -68,6 +78,10 @@ namespace WeddingPhotoSharing.WebJob
             blobClient = storageAccount.CreateCloudBlobClient();
             container = blobClient.GetContainerReference(LineMediaContainerName);
             adultContainer = blobClient.GetContainerReference(LineAdultMediaContainerName);
+
+            tableClient = storageAccount.CreateCloudTableClient();
+            table = tableClient.GetTableReference(LineMessageTableName);
+            table.CreateIfNotExists();
 
             ImageGeneratorTemplate = File.ReadAllText("TextTemplates/TextPanel.xaml");
         }
@@ -125,6 +139,9 @@ namespace WeddingPhotoSharing.WebJob
                     if (eventMessage.Message.Type == MessageType.Text)
                     {
                         result.Message = eventMessage.Message.Text;
+
+                        // ストレージテーブルに格納
+                        await UploadMessageToStorageTable(eventMessage.Message.Id,result.Name, eventMessage.Message.Text);
 
                         // テキストを画像化
                         dynamic viewModel = new ExpandoObject();
@@ -237,6 +254,17 @@ namespace WeddingPhotoSharing.WebJob
             blockBlob.Properties.ContentType = "image/jpeg";
 
             await blockBlob.UploadFromStreamAsync(stream);
+        }
+
+        private static async Task UploadMessageToStorageTable(long id, string name, string message)
+        {
+            // テーブルストレージに格納
+            LineMessageEntity tableMessage = new LineMessageEntity(name, id.ToString());
+            tableMessage.Name = name;
+            tableMessage.Message = message;
+
+            TableOperation insertOperation = TableOperation.Insert(tableMessage);
+            await table.ExecuteAsync(insertOperation);
         }
 
         private static async Task UploadImageToStorage(string fileName, byte[] image, bool isAdult = false)
@@ -520,4 +548,20 @@ namespace WeddingPhotoSharing.WebJob
         public double racyScore { get; set; }
     }
 
+    public class LineMessageEntity : TableEntity
+    {
+        public LineMessageEntity(string name, string id)
+        {
+            this.PartitionKey = name;
+            this.RowKey = id;
+        }
+
+        public LineMessageEntity() { }
+
+        public long Id { get; set; }
+
+        public string Name { get; set; }
+
+        public string Message { get; set; }
+    }
 }

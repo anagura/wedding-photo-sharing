@@ -14,6 +14,8 @@
 
         public static string LineAdultMediaContainerName => Setting("LineAdultMediaContainerName");
 
+        public static string LineMessageTableName => Setting("LineMessageTableName");
+
         public static string StorageAccountName => Setting("StorageAccountName");
 
         public static string StorageAccountKey => Setting("StorageAccountKey");
