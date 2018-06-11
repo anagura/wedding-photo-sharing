@@ -260,6 +260,7 @@ namespace WeddingPhotoSharing.WebJob
         {
             // テーブルストレージに格納
             LineMessageEntity tableMessage = new LineMessageEntity(name, id.ToString());
+            tableMessage.Id = id;
             tableMessage.Name = name;
             tableMessage.Message = message;
 
