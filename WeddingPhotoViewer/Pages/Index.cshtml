@@ -4,18 +4,14 @@
     ViewData["Title"] = "Wedding Photo Viewer";
 }
 @section Styles{
-    <environment include="Development">
-        <link rel="stylesheet" href="~/lib/lightbox2/css/lightbox.css">
-    </environment>
-    <environment exclude="Development">
-        <link rel="stylesheet" href="~/lib/lightbox2/css/lightbox.min.css">
-    </environment>
-    <environment include="Development">
-        <link rel="stylesheet" href="~/lib/justifiedGallery/dist/css/justifiedGallery.css" />
-    </environment>
-    <environment exclude="Development">
-        <link rel="stylesheet" href="~/lib/justifiedGallery/dist/css/justifiedGallery.min.css" />
-    </environment>
+<environment include="Development">
+    <link rel="stylesheet" href="~/lib/lightbox2/css/lightbox.css">
+    <link rel="stylesheet" href="~/lib/justifiedGallery/dist/css/justifiedGallery.css" />
+</environment>
+<environment exclude="Development">
+    <link rel="stylesheet" href="~/lib/lightbox2/css/lightbox.min.css">
+    <link rel="stylesheet" href="~/lib/justifiedGallery/dist/css/justifiedGallery.min.css" />
+</environment>
     <style>
 
         #mygallery {
@@ -38,20 +34,12 @@
 @section Scripts{
     <environment include="Development">
         <script type="text/javascript" src="~/lib/lightbox2/js/lightbox-plus-jquery.js"></script>
-    </environment>
-    <environment exclude="Development">
-        <script type="text/javascript" src="~/lib/lightbox2/js/lightbox-plus-jquery.min.js"></script>
-    </environment>
-    <environment include="Development">
         <script type="text/javascript" src="~/lib/justifiedGallery/dist/js/jquery.justifiedGallery.js"></script>
-    </environment>
-    <environment exclude="Development">
-        <script type="text/javascript" src="~/lib/justifiedGallery/dist/js/jquery.justifiedGallery.min.js"></script>
-    </environment>
-    <environment include="Development">
         <script type="text/javascript" src="~/lib/reconnecting-websocket/reconnecting-websocket.js"></script>
     </environment>
     <environment exclude="Development">
+        <script type="text/javascript" src="~/lib/lightbox2/js/lightbox-plus-jquery.min.js"></script>
+        <script type="text/javascript" src="~/lib/justifiedGallery/dist/js/jquery.justifiedGallery.min.js"></script>
         <script type="text/javascript" src="~/lib/reconnecting-websocket/reconnecting-websocket.min.js"></script>
     </environment>
 
@@ -180,7 +168,6 @@
             };
             socket.onerror = function () {
                 console.log("on error");
-                //                alert("socket error");
             };
             socket.onmessage = function (event) {
 

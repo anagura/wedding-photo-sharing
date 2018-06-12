@@ -1,5 +1,4 @@
-﻿using Microsoft.Azure;
-using Microsoft.Azure.WebJobs;
+﻿using Microsoft.Azure.WebJobs;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Auth;
@@ -17,8 +16,6 @@ using System.Threading.Tasks;
 using LineMessaging;
 using ImageGeneration;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using System.Net.Http.Headers;
 using System.Linq;
 using Microsoft.WindowsAzure.Storage.Table;
@@ -64,6 +61,7 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly CloudTable table;
 
         private const int ImageHeight = 300;
+        private const int MessageLength = 43;
 
         static Functions()
         {
@@ -134,6 +132,7 @@ namespace WeddingPhotoSharing.WebJob
                     result.MessageType = (int)eventMessage.Message.Type;
                     var ext = eventMessage.Message.Type == MessageType.Video ? ".mpg" : ".jpg";
                     var fileName = eventMessage.Message.Id.ToString() + ext;
+                    string suffix = "";
 
                     byte[] image;
                     if (eventMessage.Message.Type == MessageType.Text)
@@ -144,9 +143,16 @@ namespace WeddingPhotoSharing.WebJob
                         await UploadMessageToStorageTable(eventMessage.Message.Id,result.Name, eventMessage.Message.Text);
 
                         // テキストを画像化
+                        string textMessage = eventMessage.Message.Text;
+                        if (textMessage.Length > MessageLength)
+                        {
+                            textMessage = textMessage.Substring(0, MessageLength) + "...";
+                            suffix = string.Format("\nメッセージが長いため、途中までしか表示されません。{0}文字以内で入力をお願いします。", MessageLength);
+                        }
+
                         dynamic viewModel = new ExpandoObject();
                         viewModel.Name = result.Name;
-                        viewModel.Text = eventMessage.Message.Text;
+                        viewModel.Text = textMessage;
                         image = ImageGenerator.GenerateImage(ImageGeneratorTemplate, viewModel);
 
                         // 画像をストレージにアップロード
@@ -203,7 +209,7 @@ namespace WeddingPhotoSharing.WebJob
                         continue;
                     }
 
-                    await ReplyToLine(eventMessage.ReplyToken, "投稿を受け付けました。表示されるまで少々お待ちください。", log);
+                    await ReplyToLine(eventMessage.ReplyToken, "投稿を受け付けました。表示されるまで少々お待ちください。" + suffix, log);
                     lineMessages.Add(result);
                 }
             }
