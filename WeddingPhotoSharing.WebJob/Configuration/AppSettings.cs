@@ -7,5 +7,19 @@
         public static string SlackWebhookPath => Setting("SlackWebhookPath");
 
         public static string WebsocketServerUrl => Setting("WebsocketServerUrl");
+
+		public static string LineAccessToken => Setting("LineAccessToken");
+
+        public static string LineMediaContainerName => Setting("LineMediaContainerName");
+
+        public static string LineAdultMediaContainerName => Setting("LineAdultMediaContainerName");
+
+        public static string LineMessageTableName => Setting("LineMessageTableName");
+
+        public static string StorageAccountName => Setting("StorageAccountName");
+
+        public static string StorageAccountKey => Setting("StorageAccountKey");
+
+        public static string VisionSubscriptionKey => Setting("VisionSubscriptionKey");
     }
 }
