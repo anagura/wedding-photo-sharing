@@ -40,8 +40,9 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly string StorageAccountKey = AppSettings.StorageAccountKey;
         private static readonly string VisionSubscriptionKey = AppSettings.VisionSubscriptionKey;
 
-        private static readonly string VisionUrl = "https://westcentralus.api.cognitive.microsoft.com/vision/v2.0/analyze";
+        private static readonly string VisionUrl = "https://southeastasia.api.cognitive.microsoft.com/vision/v2.0/analyze";
         private static readonly string ImageGeneratorTemplate;
+        private static readonly string ImageGeneratorBigTemplate;
 
         private static ClientWebSocket webSocket;
         private static readonly ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
@@ -82,6 +83,7 @@ namespace WeddingPhotoSharing.WebJob
             table.CreateIfNotExists();
 
             ImageGeneratorTemplate = File.ReadAllText("TextTemplates/TextPanel.xaml");
+            ImageGeneratorBigTemplate = File.ReadAllText("TextTemplates/TextPanelBig.xaml");
         }
 
         public async static Task ProcessQueueMessage([QueueTrigger("line-bot-workitems")] string message, TextWriter log)
@@ -96,22 +98,33 @@ namespace WeddingPhotoSharing.WebJob
                 messageQueue.Enqueue(message);
                 return;
             }
-            if (messageQueue.Count > 0)
-            {
-                while (messageQueue.TryDequeue(out string oldMessage))
-                {
-                    log.WriteLine("old message: " + oldMessage);
-                    oldMessage = await GetContentFromLine(oldMessage, log);
-                    await PostToSlack(oldMessage, log);
-                    await PostToWebsocket(oldMessage, log);
-                }
-            }
 
-            message = await GetContentFromLine(message, log);
-            if (!string.IsNullOrEmpty(message))
+            try
             {
-                await PostToSlack(message, log);
-                await PostToWebsocket(message, log);
+                if (messageQueue.Count > 0)
+                {
+                    while (messageQueue.TryDequeue(out string oldMessage))
+                    {
+                        log.WriteLine("old message: " + oldMessage);
+                        oldMessage = await GetContentFromLine(oldMessage, log);
+                        if (!string.IsNullOrEmpty(oldMessage))
+                        {
+                            await PostToSlack(oldMessage, log);
+                            await PostToWebsocket(oldMessage, log);
+                        }
+                    }
+                }
+
+                message = await GetContentFromLine(message, log);
+                if (!string.IsNullOrEmpty(message))
+                {
+                    await PostToSlack(message, log);
+                    await PostToWebsocket(message, log);
+                }
+            }catch(Exception ex)
+            {
+                log.WriteLine(ex.ToString());
+                await PostToSlack(ex.ToString(), log);
             }
         }
 
@@ -153,7 +166,14 @@ namespace WeddingPhotoSharing.WebJob
                         dynamic viewModel = new ExpandoObject();
                         viewModel.Name = result.Name;
                         viewModel.Text = textMessage;
-                        image = ImageGenerator.GenerateImage(ImageGeneratorTemplate, viewModel);
+                        if (textMessage.Length > (MessageLength / 2))
+                        {
+                            image = ImageGenerator2.GenerateImage(ImageGeneratorTemplate, viewModel, "normal");
+                        }
+                        else
+                        {
+                            image = ImageGenerator2.GenerateImage(ImageGeneratorBigTemplate, viewModel, "big");
+                        }
 
                         // 画像をストレージにアップロード
                         await UploadImageToStorage(fileName, image);
@@ -165,22 +185,28 @@ namespace WeddingPhotoSharing.WebJob
                         var lineResult = lineMessagingClient.GetMessageContent(eventMessage.Message.Id.ToString());
 
                         // エロ画像チェック
-                        string vision_result = await MakeAnalysisRequest(lineResult.Result);
-
-                        var vision = JsonConvert.DeserializeObject<VisionAdultResult>(vision_result);
-                        if (vision.Adult.isAdultContent)
+                        try
                         {
-                            // アダルト用ストレージにアップロード
-                            await UploadImageToStorage(fileName, lineResult.Result, true);
+                            string vision_result = await MakeAnalysisRequest(lineResult.Result);
 
-                            vision_result += ", imageUrl:" + GetUrl(fileName, true);
+                            var vision = JsonConvert.DeserializeObject<VisionAdultResult>(vision_result);
+                            if (vision.Adult.isAdultContent)
+                            {
+                                // アダルト用ストレージにアップロード
+                                await UploadImageToStorage(fileName, lineResult.Result, true);
+
+                                vision_result += ", imageUrl:" + GetUrl(fileName, true);
+                                await PostToSlack(vision_result, log);
+
+                                await ReplyToLine(eventMessage.ReplyToken, string.Format("ちょっと嫌な予感がするので、この写真は却下します。\nscore:{0}", vision.Adult.adultScore), log);
+                                continue;
+                            }
                             await PostToSlack(vision_result, log);
-
-                            await ReplyToLine(eventMessage.ReplyToken, string.Format("ちょっと嫌な予感がするので、この写真は却下します。\nscore:{0}", vision.Adult.adultScore), log);
-                            continue;
                         }
-
-                        await PostToSlack(vision_result, log);
+                        catch (Exception ex)
+                        {
+                            await PostToSlack(ex.ToString(), log);
+                        }
 
                         // 画像をストレージにアップロード
                         await UploadImageToStorage(fileName, lineResult.Result);
