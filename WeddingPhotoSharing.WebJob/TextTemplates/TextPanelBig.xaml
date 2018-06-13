@@ -3,7 +3,9 @@
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
- mc:Ignorable="d"  Width="300"  Height="300">    <Grid Background = "White">
-        <TextBlock FontFamily="メイリオ" FontSize="48px" x:Name="textBlock1" HorizontalAlignment="Left"  TextWrapping="Wrap" Text="@Model.Text" VerticalAlignment="Center" Foreground = "Blue" />
-        <TextBlock FontFamily="メイリオ" FontSize="32px" x:Name="textBlock2" HorizontalAlignment="Right"  TextWrapping="Wrap" Text="@Model.Name" VerticalAlignment="Bottom"/>
+ mc:Ignorable="d"  Width="400"  Height="250">
+    <Grid Background = "White">
+        <Rectangle RadiusX="20" RadiusY="20"  HorizontalAlignment="Center" Height="250" Margin="0,0,0,0" Stroke="Gray" VerticalAlignment="Center" Width="400" StrokeDashArray="6,3,2,3"/>
+        <TextBlock Margin="6,0,2,30"  FontFamily="メイリオ" FontSize="48px" x:Name="textBlock1" HorizontalAlignment="Left"  TextWrapping="Wrap" Text="@Model.Text" VerticalAlignment="Center" Foreground = "Blue" />
+        <TextBlock Margin="0,0,10,2"  FontFamily="メイリオ" FontSize="32px" x:Name="textBlock2" HorizontalAlignment="Right"  TextWrapping="Wrap" Text="@Model.Name" VerticalAlignment="Bottom"/>
     </Grid></UserControl>
