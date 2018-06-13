@@ -166,6 +166,7 @@ namespace WeddingPhotoSharing.WebJob
                         dynamic viewModel = new ExpandoObject();
                         viewModel.Name = result.Name;
                         viewModel.Text = textMessage;
+                        viewModel.Source = Directory.GetCurrentDirectory() + "\\TextTemplates\\3.jpg";
                         if (textMessage.Length > (MessageLength / 2))
                         {
                             image = ImageGenerator2.GenerateImage(ImageGeneratorTemplate, viewModel, "normal");
