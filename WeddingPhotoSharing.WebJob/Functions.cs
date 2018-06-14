@@ -60,7 +60,7 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly CloudTable table;
 
         private const int ImageHeight = 300;
-        private const int MessageLength = 43;
+        private const int MessageLength = 40;
 
         private static readonly string TemplateDirectoryName = "TextTemplates";
         private static List<TextImageTemplate> _imageTemplates = new List<TextImageTemplate>();
@@ -173,7 +173,8 @@ namespace WeddingPhotoSharing.WebJob
                             suffix = string.Format("\nメッセージが長いため、途中までしか表示されません。{0}文字以内で入力をお願いします。", MessageLength);
                         }
 
-                        var template = _imageTemplates.Where(x => x.LimitSize >= textMessage.Length).PickRandom();
+                        var textLength = textMessage.Length > MessageLength ? MessageLength : textMessage.Length;
+                        var template = _imageTemplates.Where(x => x.LimitSize >= textLength).PickRandom();
 
                         dynamic viewModel = new ExpandoObject();
                         viewModel.Name = result.Name;
