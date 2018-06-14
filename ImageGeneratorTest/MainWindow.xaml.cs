@@ -84,7 +84,7 @@ namespace ImageGeneratorTest
     {
         private Person _person;
 
-        private const string xamlPrefix = "<UserControl\n xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"\n xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"\n xmlns:d=\"http://schemas.microsoft.com/expression/blend/2008\"\n xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"\n mc:Ignorable=\"d\"  Width=\"300\"  Height=\"300\">";
+        private const string xamlPrefix = "<UserControl\n xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"\n xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"\n xmlns:d=\"http://schemas.microsoft.com/expression/blend/2008\"\n xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"\n mc:Ignorable=\"d\"  Width=\"400\"  Height=\"250\">";
         private const string xamlPostfix = "</UserControl>";
 
         public MainWindow()
