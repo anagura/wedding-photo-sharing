@@ -6,6 +6,6 @@
  mc:Ignorable="d"  Width="400"  Height="250">
     <Grid Background = "White">
 <Image x:Name="image" HorizontalAlignment="Left" Height="250" Margin="0,0,0,0" VerticalAlignment="Top" Width="400" Source="@Model.Source" />
-        <TextBlock Margin="6,0,2,30"  FontFamily="メイリオ" FontSize="32px" x:Name="textBlock1" HorizontalAlignment="Left"  TextWrapping="Wrap" Text="@Model.Text" VerticalAlignment="Center" Foreground = "Blue" />
-        <TextBlock Margin="0,0,10,2"  FontFamily="メイリオ" FontSize="32px" x:Name="textBlock2" HorizontalAlignment="Center"  TextWrapping="Wrap" Text="@Model.Name" VerticalAlignment="Bottom"/>
+        <TextBlock Margin="20,0,20,0"  FontFamily="メイリオ" FontSize="32px" x:Name="textBlock1" HorizontalAlignment="Center"  TextWrapping="Wrap" Text="@Model.Text" VerticalAlignment="Center" Foreground = "Blue" />
+        <TextBlock Margin="0,0,20,20"  FontFamily="メイリオ" FontSize="24px" x:Name="textBlock2" HorizontalAlignment="Right"  TextWrapping="Wrap" Text="@Model.Name" VerticalAlignment="Bottom"/>
     </Grid></UserControl>

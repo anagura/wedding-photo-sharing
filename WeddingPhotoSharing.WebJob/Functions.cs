@@ -41,8 +41,6 @@ namespace WeddingPhotoSharing.WebJob
         private static readonly string VisionSubscriptionKey = AppSettings.VisionSubscriptionKey;
 
         private static readonly string VisionUrl = "https://southeastasia.api.cognitive.microsoft.com/vision/v2.0/analyze";
-        private static readonly string ImageGeneratorTemplate;
-        private static readonly string ImageGeneratorBigTemplate;
 
         private static ClientWebSocket webSocket;
         private static readonly ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
@@ -64,6 +62,10 @@ namespace WeddingPhotoSharing.WebJob
         private const int ImageHeight = 300;
         private const int MessageLength = 43;
 
+        private static readonly string TemplateDirectoryName = "TextTemplates";
+        private static List<TextImageTemplate> _imageTemplates = new List<TextImageTemplate>();
+
+
         static Functions()
         {
             webSocket = new ClientWebSocket();
@@ -82,8 +84,16 @@ namespace WeddingPhotoSharing.WebJob
             table = tableClient.GetTableReference(LineMessageTableName);
             table.CreateIfNotExists();
 
-            ImageGeneratorTemplate = File.ReadAllText("TextTemplates/TextPanel.xaml");
-            ImageGeneratorBigTemplate = File.ReadAllText("TextTemplates/TextPanelBig.xaml");
+            _imageTemplates.Add(new TextImageTemplate { LimitSize = 8, ImageName = "12071.png", TemplateName = "Big8.xaml" });
+            _imageTemplates.Add(new TextImageTemplate { LimitSize = 20, ImageName = "51881.png", TemplateName = "51881.xaml" });
+            _imageTemplates.Add(new TextImageTemplate { LimitSize = 30, ImageName = "51893.png", TemplateName = "Middle10.xaml" });
+            _imageTemplates.Add(new TextImageTemplate { LimitSize = 30, ImageName = "29831.png", TemplateName = "29831.xaml" });
+            _imageTemplates.Add(new TextImageTemplate { LimitSize = MessageLength, ImageName = "82096.png", TemplateName = "TextPanel.xaml" });
+
+            _imageTemplates.ForEach(x =>
+            {
+                x.Template = File.ReadAllText(TemplateDirectoryName + "/" + x.TemplateName);
+            });
         }
 
         public async static Task ProcessQueueMessage([QueueTrigger("line-bot-workitems")] string message, TextWriter log)
@@ -163,18 +173,14 @@ namespace WeddingPhotoSharing.WebJob
                             suffix = string.Format("\nメッセージが長いため、途中までしか表示されません。{0}文字以内で入力をお願いします。", MessageLength);
                         }
 
+                        var template = _imageTemplates.Where(x => x.LimitSize >= textMessage.Length).PickRandom();
+
                         dynamic viewModel = new ExpandoObject();
                         viewModel.Name = result.Name;
                         viewModel.Text = textMessage;
-                        viewModel.Source = Directory.GetCurrentDirectory() + "\\TextTemplates\\3.jpg";
-                        if (textMessage.Length > (MessageLength / 2))
-                        {
-                            image = ImageGenerator2.GenerateImage(ImageGeneratorTemplate, viewModel, "normal");
-                        }
-                        else
-                        {
-                            image = ImageGenerator2.GenerateImage(ImageGeneratorBigTemplate, viewModel, "big");
-                        }
+                        viewModel.Source = string.Format("{0}\\{1}\\{2}", Directory.GetCurrentDirectory(), TemplateDirectoryName, template.ImageName);
+
+                        image = ImageGenerator2.GenerateImage(template.Template, viewModel, template.ImageName);
 
                         // 画像をストレージにアップロード
                         await UploadImageToStorage(fileName, image);
@@ -537,6 +543,24 @@ namespace WeddingPhotoSharing.WebJob
         }
     }
 
+    public static class EnumerableExtension
+    {
+        public static T PickRandom<T>(this IEnumerable<T> source)
+        {
+            return source.PickRandom(1).Single();
+        }
+
+        public static IEnumerable<T> PickRandom<T>(this IEnumerable<T> source, int count)
+        {
+            return source.Shuffle().Take(count);
+        }
+
+        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source)
+        {
+            return source.OrderBy(x => Guid.NewGuid());
+        }
+    }
+
     public class WebSocketMessage
     {
         [JsonProperty("name")]
@@ -559,6 +583,17 @@ namespace WeddingPhotoSharing.WebJob
     {
         [JsonProperty("text")]
         public string Text { get; set; }
+    }
+
+    public class TextImageTemplate
+    {
+        public int LimitSize { get; set; }
+
+        public string TemplateName { get; set; }
+
+        public string Template { get; set; }
+
+        public string ImageName { get; set; }
     }
 
     public class VisionAdultResult
