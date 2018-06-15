@@ -25,11 +25,13 @@
     </style>
 }
     <div id="mygallery" class="justified-gallery">
+        <!--
         <a class="example-image-link" href="http://lokeshdhakar.com/projects/lightbox2/images/image-2.jpg" data-lightbox="example-2" data-title="Optional caption."><img class="example-image" src="http://lokeshdhakar.com/projects/lightbox2/images/thumb-2.jpg" alt="image-1" /></a>
         <a class="example-image-link" href="https://s7d1.scene7.com/is/image/PETCO/dog-category-090617-369w-269h-hero-cutout-d" data-lightbox="example-2" data-title="Optional caption."><img class="example-image" src="https://s7d1.scene7.com/is/image/PETCO/dog-category-090617-369w-269h-hero-cutout-d" alt="image-1" /></a>
         <a class="example-image-link" href="https://www.cesarsway.com/sites/newcesarsway/files/styles/large_article_preview/public/Common-dog-behaviors-explained.jpg" data-lightbox="example-2" data-title="Optional caption."><img class="example-image" src="https://www.cesarsway.com/sites/newcesarsway/files/styles/large_article_preview/public/Common-dog-behaviors-explained.jpg" alt="image-1" /></a>
         <a class="example-image-link" href="https://s7d2.scene7.com/is/image/PetSmart/PB1201_STORY_CARO-Authority-HealthyOutside-DOG-20160818" data-lightbox="example-2" data-title="Optional caption."><img class="example-image" src="https://s7d2.scene7.com/is/image/PetSmart/PB1201_STORY_CARO-Authority-HealthyOutside-DOG-20160818" alt="image-1" /></a>
         <a class="example-image-link" href="https://i.pinimg.com/originals/2e/3e/a1/2e3ea12b3417421b1a83cd2305d2b5f9.jpg" data-lightbox="example-2" data-title="Optional caption."><img class="example-image" src="https://i.pinimg.com/originals/2e/3e/a1/2e3ea12b3417421b1a83cd2305d2b5f9.jpg" alt="image-1" /></a>
+        -->
     </div>
 @section Scripts{
     <environment include="Development">
@@ -159,21 +161,18 @@
         window.onload = function () {
             socket = new ReconnectingWebSocket(connectionUrl);
             socket.onopen = function (event) {
-                console.log("on open");
                 setInterval(sendPing, 5000);
             };
             socket.onclose = function (event) {
-                console.log("on close");
-                console.dir(event);
+
             };
             socket.onerror = function () {
-                console.log("on error");
+
             };
             socket.onmessage = function (event) {
 
                 if (event.type == "message") {
                     if (event.data == "hoi") {
-                        console.log("pong received. ");
                         return;
                     }
                 }
@@ -193,13 +192,10 @@
                             // 画像
                             addPhotoByUrl(data[i].imageUrl, data[i].thumbnailImageUrl, data[i].name + "さんからの投稿", false);
                         } else {
-                            console.log("unknown message type.");
                             continue;
                         }
-                        console.log(data[i].name + ' / ' + data[i].imageUrl);
                     }
                 } catch (e) {
-
                     console.log(e);
                 }
             };
