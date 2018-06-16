@@ -119,7 +119,7 @@ namespace WeddingPhotoSharing.WebJob
                         oldMessage = await GetContentFromLine(oldMessage, log);
                         if (!string.IsNullOrEmpty(oldMessage))
                         {
-                            await PostToSlack(oldMessage, log);
+  //                          await PostToSlack(oldMessage, log);
                             await PostToWebsocket(oldMessage, log);
                         }
                     }
@@ -128,7 +128,7 @@ namespace WeddingPhotoSharing.WebJob
                 message = await GetContentFromLine(message, log);
                 if (!string.IsNullOrEmpty(message))
                 {
-                    await PostToSlack(message, log);
+//                    await PostToSlack(message, log);
                     await PostToWebsocket(message, log);
                 }
             }catch(Exception ex)
@@ -204,12 +204,12 @@ namespace WeddingPhotoSharing.WebJob
                                 await UploadImageToStorage(fileName, lineResult.Result, true);
 
                                 vision_result += ", imageUrl:" + GetUrl(fileName, true);
-                                await PostToSlack(vision_result, log);
+//                                await PostToSlack(vision_result, log);
 
                                 await ReplyToLine(eventMessage.ReplyToken, string.Format("ちょっと嫌な予感がするので、この写真は却下します。\nscore:{0}", vision.Adult.adultScore), log);
                                 continue;
                             }
-                            await PostToSlack(vision_result, log);
+  //                          await PostToSlack(vision_result, log);
                         }
                         catch (Exception ex)
                         {
@@ -369,7 +369,7 @@ namespace WeddingPhotoSharing.WebJob
             }
         }
 
-        private static Task PostToWebsocket(string message, TextWriter log)
+        private static async Task PostToWebsocket(string message, TextWriter log)
         {
             try
             {
@@ -384,14 +384,13 @@ namespace WeddingPhotoSharing.WebJob
                 {
                     var chunk = buffer.ToArray();
                     var endOfMessage = ((double)messageBytes.Length / bufferSize).Floor() == index;
-                    list.Add(webSocket.SendAsync(new ArraySegment<byte>(chunk, 0, chunk.Length), WebSocketMessageType.Text, endOfMessage, cancellationTokenSource.Token));
+//                    list.Add(webSocket.SendAsync(new ArraySegment<byte>(chunk, 0, chunk.Length), WebSocketMessageType.Text, endOfMessage, cancellationTokenSource.Token));
+                    await webSocket.SendAsync(new ArraySegment<byte>(chunk, 0, chunk.Length), WebSocketMessageType.Text, endOfMessage, cancellationTokenSource.Token);
                 }
-                return Task.WhenAll(list);
             }
             catch (Exception ex)
             {
                 log.WriteLine("PostToWebsocket: " + ex.ToString());
-                return Task.CompletedTask;
             }
         }
 
