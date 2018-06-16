@@ -167,7 +167,8 @@
 
             };
             socket.onerror = function () {
-
+                clearInterval(interval);
+                connect();
             };
             socket.onmessage = function (event) {
 
