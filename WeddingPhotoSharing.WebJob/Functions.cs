@@ -135,6 +135,7 @@ namespace WeddingPhotoSharing.WebJob
             {
                 log.WriteLine(ex.ToString());
                 await PostToSlack(ex.ToString(), log);
+                throw ex;   // 次回再送するため
             }
         }
 
