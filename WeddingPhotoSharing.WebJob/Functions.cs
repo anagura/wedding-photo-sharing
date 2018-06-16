@@ -192,6 +192,10 @@ namespace WeddingPhotoSharing.WebJob
                     {
                         // LINEから画像を取得
                         var lineResult = lineMessagingClient.GetMessageContent(eventMessage.Message.Id.ToString());
+                        if (lineResult == null)
+                        {
+                            throw new Exception("GetMessageContent is null");
+                        }
 
                         // エロ画像チェック
                         try
