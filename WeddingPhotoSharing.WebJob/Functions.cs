@@ -192,7 +192,7 @@ namespace WeddingPhotoSharing.WebJob
                     {
                         // LINEから画像を取得
                         var lineResult = lineMessagingClient.GetMessageContent(eventMessage.Message.Id.ToString());
-                        if (lineResult == null)
+                        if (lineResult.Result == null || !lineResult.IsCompleted || lineResult.IsFaulted)
                         {
                             throw new Exception("GetMessageContent is null");
                         }
@@ -211,7 +211,7 @@ namespace WeddingPhotoSharing.WebJob
                                 vision_result += ", imageUrl:" + GetUrl(fileName, true);
 //                                await PostToSlack(vision_result, log);
 
-                                await ReplyToLine(eventMessage.ReplyToken, string.Format("ちょっと嫌な予感がするので、この写真は却下します。\nscore:{0}", vision.Adult.adultScore), log);
+//                                await ReplyToLine(eventMessage.ReplyToken, string.Format("ちょっと嫌な予感がするので、この写真は却下します。\nscore:{0}", vision.Adult.adultScore), log);
                                 continue;
                             }
   //                          await PostToSlack(vision_result, log);
@@ -244,11 +244,11 @@ namespace WeddingPhotoSharing.WebJob
                     else
                     {
                         log.WriteLine("not supported message type:" + eventMessage.Message.Type);
-                        await ReplyToLine(eventMessage.ReplyToken, "未対応のメッセージです。テキストか画像を投稿してください", log);
+//                        await ReplyToLine(eventMessage.ReplyToken, "未対応のメッセージです。テキストか画像を投稿してください", log);
                         continue;
                     }
 
-                    await ReplyToLine(eventMessage.ReplyToken, "投稿を受け付けました。表示されるまで少々お待ちください。" + suffix, log);
+//                    await ReplyToLine(eventMessage.ReplyToken, "投稿を受け付けました。表示されるまで少々お待ちください。" + suffix, log);
                     lineMessages.Add(result);
                 }
             }
