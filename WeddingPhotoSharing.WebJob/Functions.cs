@@ -385,13 +385,13 @@ namespace WeddingPhotoSharing.WebJob
                 {
                     var chunk = buffer.ToArray();
                     var endOfMessage = ((double)messageBytes.Length / bufferSize).Floor() == index;
-//                    list.Add(webSocket.SendAsync(new ArraySegment<byte>(chunk, 0, chunk.Length), WebSocketMessageType.Text, endOfMessage, cancellationTokenSource.Token));
                     await webSocket.SendAsync(new ArraySegment<byte>(chunk, 0, chunk.Length), WebSocketMessageType.Text, endOfMessage, cancellationTokenSource.Token);
                 }
             }
             catch (Exception ex)
             {
                 log.WriteLine("PostToWebsocket: " + ex.ToString());
+                throw ex;
             }
         }
 
