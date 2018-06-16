@@ -389,6 +389,13 @@ namespace WeddingPhotoSharing.WebJob
                 {
                     var chunk = buffer.ToArray();
                     var endOfMessage = ((double)messageBytes.Length / bufferSize).Floor() == index;
+
+                    if (webSocket.State != WebSocketState.Open
+                        && webSocket.State != WebSocketState.Connecting)
+                    {
+                        TryConnect(log);
+                    }
+
                     await webSocket.SendAsync(new ArraySegment<byte>(chunk, 0, chunk.Length), WebSocketMessageType.Text, endOfMessage, cancellationTokenSource.Token);
                 }
             }
