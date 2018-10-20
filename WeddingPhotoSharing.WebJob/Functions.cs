@@ -1,15 +1,15 @@
 ﻿using ImageGeneration;
 using LineMessaging;
+using Microsoft.Azure.CognitiveServices.Vision.ComputerVision;
 using Microsoft.Azure.WebJobs;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
-using Microsoft.WindowsAzure.Storage.Table;
 using Newtonsoft.Json;
-using SixLabors.ImageSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
@@ -33,13 +33,15 @@ namespace WeddingPhotoSharing.WebJob
 		private static readonly string WebsocketServerUrl = AppSettings.WebsocketServerUrl;
 		private static readonly string LineMediaContainerName = AppSettings.LineMediaContainerName;
 		private static readonly string LineAdultMediaContainerName = AppSettings.LineAdultMediaContainerName;
-		private static readonly string LineMessageTableName = AppSettings.LineMessageTableName;
 		private static readonly string StorageAccountName = AppSettings.StorageAccountName;
 		private static readonly string StorageAccountKey = AppSettings.StorageAccountKey;
 		private static readonly string VisionSubscriptionKey = AppSettings.VisionSubscriptionKey;
+		private static readonly string VisionUrl = "https://japaneast.api.cognitive.microsoft.com/";
 
 		private static ClientWebSocket webSocket;
 		private static readonly ConcurrentQueue<string> messageQueue = new ConcurrentQueue<string>();
+
+		private static readonly ComputerVisionClient computerVision;
 
 		// Azure Storage
 		private static readonly StorageCredentials storageCredentials;
@@ -50,16 +52,13 @@ namespace WeddingPhotoSharing.WebJob
 		private static readonly CloudBlobContainer container;
 		private static readonly CloudBlobContainer adultContainer;
 
-		// メッセージ格納のTable
-		private static readonly CloudTableClient tableClient;
-		private static readonly CloudTable table;
-
 		private const int ImageHeight = 300;
 		private const int MessageLength = 40;
 
 		private static readonly string TemplateDirectoryName = "TextTemplates";
 		private static List<TextImageTemplate> _imageTemplates = new List<TextImageTemplate>();
 
+		private static ImageConverter converter = new ImageConverter();
 
 		static Functions()
 		{
@@ -73,10 +72,6 @@ namespace WeddingPhotoSharing.WebJob
 			container = blobClient.GetContainerReference(LineMediaContainerName);
 			adultContainer = blobClient.GetContainerReference(LineAdultMediaContainerName);
 
-			tableClient = storageAccount.CreateCloudTableClient();
-			table = tableClient.GetTableReference(LineMessageTableName);
-			table.CreateIfNotExists();
-
 			_imageTemplates.Add(new TextImageTemplate { LimitSize = 8, ImageName = "12071.png", TemplateName = "Big8.xaml" });
 			_imageTemplates.Add(new TextImageTemplate { LimitSize = 20, ImageName = "51881.png", TemplateName = "51881.xaml" });
 			_imageTemplates.Add(new TextImageTemplate { LimitSize = 30, ImageName = "51893.png", TemplateName = "Middle10.xaml" });
@@ -87,6 +82,11 @@ namespace WeddingPhotoSharing.WebJob
 			{
 				x.Template = File.ReadAllText(TemplateDirectoryName + "/" + x.TemplateName);
 			});
+
+			computerVision = new ComputerVisionClient(
+				new ApiKeyServiceClientCredentials(VisionSubscriptionKey),
+				new System.Net.Http.DelegatingHandler[] { });
+			computerVision.Endpoint = VisionUrl;
 		}
 
 		public async static Task ProcessQueueMessage([QueueTrigger("line-bot-workitems")] string message, TextWriter log)
@@ -180,8 +180,8 @@ namespace WeddingPhotoSharing.WebJob
 
 					// サムネイル
 					var thumbnailFileName = string.Format("thumbnail_{0}{1}", eventMessage.Id, ".jpg");
-					await ResizeUpload(thumbnailFileName, lineResult, ImageHeight);
-					result.ThumbnailImageUrl = GetUrl(thumbnailFileName);
+					result.ThumbnailImageUrl = await ResizeUpload(thumbnailFileName, lineResult, ImageHeight, log) ?
+						GetUrl(thumbnailFileName) : eventMessage.ImageUrl;
 				}
 				else
 				{
@@ -195,24 +195,25 @@ namespace WeddingPhotoSharing.WebJob
 			return lineMessages.Any() ? JsonConvert.SerializeObject(lineMessages) : string.Empty;
 		}
 
-		private static async Task ResizeUpload(string fileName, byte[] sourceImage, int height)
+		// Create a thumbnail from a local image
+		private static async Task<bool> ResizeUpload(
+			string fileName, byte[] sourceImage, int height, TextWriter log)
 		{
-			using (Image<Rgba32> image = SixLabors.ImageSharp.Image.Load(sourceImage))
+			bool isResized = false;
+			Image image = (Image)converter.ConvertFrom(sourceImage);
+
+			using (var streamImage = new MemoryStream(sourceImage))
 			{
 				if (image.Height > height)
 				{
-					int ratio = height / image.Height;
-					image.Mutate(x => x
-								 .Resize(image.Width * ratio, height));
-				}
-
-				using (var ms = new MemoryStream())
-				{
-					image.SaveAsJpeg(ms);
-					ms.Position = 0;    //Move the pointer to the start of stream.
-					await UploadStreamImageToStorage(fileName, ms);
+					var ratio = height / (float)image.Height;
+					var _streamImage = await computerVision.GenerateThumbnailInStreamAsync((int)(image.Width * ratio), height, streamImage, true);
+					await UploadStreamImageToStorage(fileName, _streamImage);
+					isResized = true;
 				}
 			}
+
+			return isResized;
 		}
 
 		private static async Task UploadStreamImageToStorage(string fileName, Stream stream)
