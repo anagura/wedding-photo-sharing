@@ -126,7 +126,7 @@ namespace WeddingPhotoSharing.WebJob
 				message = await GetContentFromLine(message, log);
 				if (!string.IsNullOrEmpty(message))
 				{
-					//                    await PostToSlack(message, log);
+					await PostToSlack(message, log);
 					await PostToWebsocket(message, log);
 				}
 			}
@@ -146,6 +146,7 @@ namespace WeddingPhotoSharing.WebJob
 			{
 				WebSocketMessage result = new WebSocketMessage
 				{
+					Id = eventMessage.Id,
 					Name = eventMessage.Name,
 					MessageType = eventMessage.MessageType
 				};
@@ -346,6 +347,9 @@ namespace WeddingPhotoSharing.WebJob
 
 	public class WebSocketMessage
 	{
+		[JsonProperty("id")]
+		public long Id { get; set; }
+
 		[JsonProperty("name")]
 		public string Name { get; set; }
 
