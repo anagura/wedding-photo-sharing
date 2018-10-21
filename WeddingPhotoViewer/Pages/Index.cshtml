@@ -146,6 +146,8 @@
 
         var connectionUrl = scheme + "://" + document.location.hostname + port + "/photo";
 
+        var showMessages = new Set();
+
         function htmlEscape(str) {
             return str
                 .replace(/&/g, '&amp;')
@@ -181,12 +183,15 @@
 
                 try {
                     for (var i = 0; i < len; i++) {
+                        if (showMessages.has(data[i].id)) {
+                            console.log(data[i].id + "is showed.");
+                            continue;
+                        }
                         if (data[i].messageType == 2) {
                             // 動画(無効)
                             createVideo(data[i].imageUrl);
                         } else if (data[i].messageType == 0) {
                             // テキスト
-//                            addText(data[i].message, data[i].name);
                             addPhotoByUrl(data[i].imageUrl, data[i].thumbnailImageUrl, data[i].name + "さんからの投稿", true);
                         } else if (data[i].messageType == 1) {
                             // 画像
@@ -194,6 +199,7 @@
                         } else {
                             continue;
                         }
+                        showMessages.add(data[i].id);
                     }
                 } catch (e) {
                     console.log(e);
