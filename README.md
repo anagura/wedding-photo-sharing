@@ -44,6 +44,25 @@ Visual StudioからAzureでデプロイします。
 
 Azureコンソールから「ストレージアカウント」→「追加」を選びストレージアカウントを作成します。
 
+#### Azure StorageにLINEの画像を格納するコンテナの作成
+
+作成したストレージアカウントを選択し、概要の「サービス」→「BLOB」→「＋コンテナー」からLINE画像保存用のコンテナを作成する。
+パブリックアクセスレベルは「コンテナー」にしておく。
+
+#### Azure StorageにLINEのNG画像を格納するコンテナの作成
+
+同じく作成したストレージアカウントを選択し、概要の「サービス」→「BLOB」→「＋コンテナー」からNG判定となったLINE画像保存用のコンテナを作成する。
+パブリックアクセスレベルは「コンテナー」にしておく。
+
+#### Azure StorageにLINEの生メッセージを格納するテーブルの作成
+
+作成したストレージアカウントを選択し、概要の「サービス」→「テーブル」→「＋テーブル」からLINEの生メッセージ保存用のコンテナを作成する。
+
+#### Azure Storageに完成メッセージ情報を格納するコンテナの作成
+
+作成したストレージアカウントを選択し、概要の「サービス」→「テーブル」→「＋テーブル」から完成メッセージ保存用のコンテナを作成する。
+
+
 ### Computer Visionの作成
 
 Azureコンソールの「リソースの作成」を選択し、検索窓に「computer vision」と入れて検索します。
@@ -71,15 +90,15 @@ AzureStorageの「アクセスキー」にあるキーを設定します。
 
 #### LineMediaContainerName
 
-LINEから投稿された画像を格納するAzure StorageのBlobコンテナを指定します。
+Azure Storageに作成したLINE画像保存用コンテナの名前を指定する
 
 #### LineAdultMediaContainerName
 
-LINEから投稿され、アダルト判定された画像を格納するAzure StorageのBlobコンテナを指定します。
+Azure Storageに作成したNG判定されたLINE画像保存用コンテナの名前を指定する
 
 #### LineMessageTableName
 
-LINEから投稿されたメッセージ情報を格納するAzure StorageのTable名を指定します。
+Azure Storageに作成したLINEの生メッセージ保存用テーブルの名前を指定する
 
 #### VisionSubscriptionKey
 
@@ -90,6 +109,9 @@ LINEから投稿されたメッセージ情報を格納するAzure StorageのTab
 FunctionAppの「関数URLの取得」でURLを取得したら、LINE Developersで作成したチャネルのWebHook Urlに設定します。
 
 ### 疎通確認
+
+LINE developersで作成したチャンネルをLINEで友達登録し、メッセージか画像を送信する。
+AzureStorageのコンテナかテーブルに送信したメッセージや画像が登録されるのを確認。
 
 ## 写真を表示するビューワーの設定
 
